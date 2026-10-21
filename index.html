@@ -1,0 +1,1555 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>馬斯克的揮霍遊戲</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: sticky ledger band (balance, spend meter, category tabs) above a scrolling price list; checkout dock fixed at the bottom; receipt sheet slides over everything. */
+:root{
+  --bg:#EDEFF1; --surface:#FFFFFF; --fg:#10151B; --muted:#56626E; --line:#CBD2D9;
+  --accent:#D4400B; --accent-fg:#FFFFFF; --track:#D9DEE3; --gain:#C62828; --loss:#1B7F4B;
+  --display:'Big Shoulders Display','Noto Sans TC',Impact,sans-serif;
+  --body:'Noto Sans TC',system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1216; --surface:#161C22; --fg:#E9EDF0; --muted:#93A0AB; --line:#27313A;
+    --accent:#FF6B2C; --accent-fg:#150E09; --track:#222B33; --gain:#FF6B6B; --loss:#4CC38A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1216; --surface:#161C22; --fg:#E9EDF0; --muted:#93A0AB; --line:#27313A;
+  --accent:#FF6B2C; --accent-fg:#150E09; --track:#222B33; --gain:#FF6B6B; --loss:#4CC38A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,input,select{font-family:inherit}
+
+.in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.top{padding-block:22px 16px}
+.eyebrow{margin:0 0 6px;font:500 12px var(--mono);letter-spacing:.08em;color:var(--muted)}
+h1{margin:0;font:800 clamp(34px,10vw,54px)/1.05 var(--display);text-wrap:balance}
+.lede{margin:10px 0 0;color:var(--muted);max-width:34em}
+
+.band{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);border-bottom:1px solid var(--line)}
+.band .in{padding-top:10px}
+.bal-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.lab{font:500 12px var(--mono);letter-spacing:.08em;color:var(--muted)}
+.zh{font:500 13px var(--mono);color:var(--muted);text-align:right}
+.bal{font:800 clamp(30px,9.6vw,48px)/1.05 var(--display);letter-spacing:.01em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.broke .bal{color:var(--accent)}
+.meter{height:4px;background:var(--track);margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:6px -12px 0}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;appearance:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font:500 14px var(--body);padding:10px 12px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tab .n{font:500 11px var(--mono);color:var(--accent);margin-left:5px}
+
+main.in{padding-bottom:130px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;padding-block:14px}
+.ghost{appearance:none;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:4px;height:40px;padding:0 14px;font:500 14px var(--body);cursor:pointer}
+.ghost.hot{border-color:var(--accent);color:var(--accent)}
+
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.meta{min-width:0;display:flex;gap:12px;align-items:flex-start}
+.mt{min-width:0}
+.th{flex:none;width:46px;height:46px;display:grid;place-items:center;background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:4px}
+.th svg{width:32px;height:32px}
+.item.on .th{color:var(--accent);border-color:var(--accent)}
+.item h3{margin:0;font:500 16px/1.35 var(--body);overflow-wrap:anywhere}
+.item p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.price{font:500 14px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-top:2px}
+.ctl{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.b{appearance:none;width:40px;height:40px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;font:500 20px/1 var(--mono);cursor:pointer}
+.q{width:92px;height:40px;text-align:center;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;font:500 15px var(--mono);font-variant-numeric:tabular-nums}
+.max{appearance:none;height:40px;padding:0 12px;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:4px;font:500 12px var(--mono);letter-spacing:.06em;cursor:pointer}
+.sub{margin-left:auto;font:400 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:right}
+.item.on .q{color:var(--accent);border-color:var(--accent)}
+.item.on .sub{color:var(--fg)}
+.item.no .meta,.item.no .price{opacity:.45}
+.item.no .b[data-a="inc"],.item.no .max{opacity:.35;cursor:not-allowed}
+.item.no .sub::after{content:"買不起";color:var(--muted)}
+.item.no.on .sub::after{content:""}
+.foot{margin:22px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.dock .in{display:flex;gap:10px;align-items:center;padding-block:10px}
+.step{display:flex;align-items:center;gap:6px;font:500 12px var(--mono);color:var(--muted);flex:none}
+.step select{height:44px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:0 6px;font:500 14px var(--mono)}
+.go{flex:1;min-width:0;height:44px;background:var(--accent);color:var(--accent-fg);border:0;border-radius:4px;font:700 16px var(--body);cursor:pointer}
+
+.sheet{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.rc{background:var(--surface);border:1px solid var(--line);padding:20px 18px;margin-block:16px 24px}
+.rc h2{margin:0 0 4px;font:800 32px/1.1 var(--display)}
+.verdict{margin:6px 0 14px;color:var(--muted)}
+.ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 0;border-bottom:1px dashed var(--line);font:400 13px var(--mono)}
+.ln span{min-width:0;overflow-wrap:anywhere}
+.ln small{display:block;color:var(--muted);font-size:12px}
+.ln b{font-weight:500;font-variant-numeric:tabular-nums;text-align:right;overflow-wrap:anywhere}
+.ln.tot{border-bottom:1px solid var(--fg);font-size:14px}
+.res{padding:18px 0 6px}
+.remain{margin:2px 0 0;font:800 clamp(34px,11vw,56px)/1.05 var(--display);color:var(--accent);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.fer{margin:14px 0 0;font-size:18px}
+.fer b{font:800 40px/1 var(--display);color:var(--accent);margin:0 4px}
+.note{margin:6px 0 0;color:var(--muted);font-size:12px}
+details{margin-top:14px}
+summary{cursor:pointer;font:500 14px var(--body);padding-block:6px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.acts .go{flex:1 1 140px}
+.acts .ghost{flex:1 1 140px;height:44px}
+.up{color:var(--gain)}
+.dn{color:var(--loss)}
+.day{margin-top:16px}
+.day .lab{display:block;margin-bottom:2px}
+body[data-mode="intro"] .top, body[data-mode="intro"] .band, body[data-mode="intro"] main, body[data-mode="intro"] .dock{display:none}
+body[data-mode="day"] .top, body[data-mode="day"] .tools{display:none}
+body[data-mode="free"] .clockrow{display:none}
+.intro{padding-block:44px 48px}
+.intro h1{font-size:clamp(44px,14vw,76px)}
+.plan{margin:24px 0;border-top:1px solid var(--line)}
+.plan div{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.plan b{font:500 14px var(--mono);color:var(--accent);font-variant-numeric:tabular-nums}
+.plan span{min-width:0}
+.plan.prof{margin-bottom:0}
+.plan.prof b{color:var(--fg)}
+.plan + .plan{margin-top:0;border-top:0}
+.intro .acts{margin-top:8px}
+.clockrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.clk{font:800 34px/1 var(--display);font-variant-numeric:tabular-nums}
+.clkr{display:flex;align-items:center;gap:10px}
+.shock{font:800 24px/1.35 var(--body);margin:6px 0 14px}.shock b{color:var(--accent);font-size:1.25em;overflow-wrap:anywhere}.fin .ln span{font-size:17px;font-weight:700}.fin .ln b{font-size:18px}
+.dipart{display:block;width:100%;height:auto;border-radius:8px;margin:8px auto 12px}
+.flycar{display:block;width:100%;height:auto;border-radius:8px;margin:8px auto 12px}
+.bignote{font:800 26px/1.35 var(--body);margin:2px 0 10px;color:var(--fg)}
+.slogans{margin:10px 0 6px}.slogan{font:800 30px/1.25 var(--body);color:var(--accent);margin:0 0 8px;letter-spacing:.01em}
+.clkact{font:700 15px/1.3 var(--body);color:var(--accent);margin-top:6px}
+.phase{font:500 12px var(--mono);letter-spacing:.06em;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:4px 8px}
+.ghost.sm{height:34px;padding:0 10px;font-size:13px}
+.dlg h2{margin:0 0 4px;font:800 30px/1.1 var(--display)}
+.dlg .q1{margin:6px 0 14px;font-size:17px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.chp{appearance:none;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;font:400 13px var(--body);cursor:pointer;text-align:left}
+.chp small{display:block;font:400 12px var(--mono);color:var(--muted)}
+.chp:hover{border-color:var(--accent)}
+.fld{display:grid;gap:6px;margin-bottom:12px}
+.fld label{font:500 12px var(--mono);letter-spacing:.06em;color:var(--muted)}
+.fld input{height:44px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:0 12px;font:400 16px var(--body);width:100%;min-width:0}
+.choice{display:grid;gap:10px;margin-top:6px}
+.choice .go,.choice .ghost{height:52px;width:100%}
+  .tier{margin:14px 0 6px;font:500 12px var(--mono);letter-spacing:.08em;color:var(--muted)}
+.rl{display:grid;gap:6px;margin-bottom:6px}
+.rst{appearance:none;display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;font:400 15px var(--body);cursor:pointer}
+.rst:hover{border-color:var(--accent)}
+.rst.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.rn{min-width:0}
+.rn small,.rp small{display:block;font:400 12px var(--mono);color:var(--muted)}
+.rp{flex:none;text-align:right;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
+small.rg{display:block;margin-top:2px;font:400 12px var(--mono);color:var(--muted)}
+.spendv{margin:12px 0 0;font:700 18px var(--body)}
+.spendv small{display:block;margin-top:2px;font:400 12px var(--mono);color:var(--muted)}
+.spendv.bad{color:var(--accent)}
+.lks{display:flex;gap:14px;margin-top:6px!important}
+.lk{font:500 12px var(--mono);color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.cnote{margin:14px 0 4px;padding:12px 14px;border:1px solid var(--accent);border-radius:4px;color:var(--accent);font:700 17px var(--body)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<section class="intro in" id="intro">
+  <p class="eyebrow">2026 · 新台幣 29 兆元 · US$1 ≈ NT$31</p>
+  <h1>馬斯克的一天</h1>
+  <p class="lede">你是今天的馬斯克，一位住在陶朱隱園的台灣人。清晨 8:00 起床，凌晨 2:00 才就寢，有錢人不能睡太多。這一天要吃三餐、通勤、購物，11 點還能自己決定活動，出國、上太空都行。睡前結算還剩多少錢：投資損益、房租、特斯拉營收，以及買下的公司營收，都會算進來。財富逐日累積，連玩三天後看總結。</p>
+  <div class="plan prof">
+    <div><b>身分</b><span>台灣人</span></div>
+    <div><b>住處</b><span>陶朱隱園，台北市信義區松高路</span></div>
+    <div><b>旗下公司</b><span>特斯拉、SpaceX、X，另有 xAI、Neuralink、The Boring Company，一共六家</span></div>
+    <div><b>上班地點</b><span>特斯拉，蓋在信義計畫區的素地上，松德路 200 巷，對面是松德公園。離住處約 1 公里（概估）</span></div>
+  </div>
+  <div class="plan">
+    <div><b>08:00</b><span>起床，決定早餐</span></div>
+    <div><b>09:00</b><span>選擇交通工具去上班</span></div>
+    <div><b>10:00</b><span>到公司，開始購物</span></div>
+    <div><b>11:00</b><span>決定活動</span></div>
+    <div><b>12:00</b><span>午餐</span></div>
+    <div><b>15:00</b><span>購物</span></div>
+    <div><b>18:00</b><span>晚餐</span></div>
+    <div><b>02:00</b><span>睡前 我的財產餘額結算</span></div>
+  </div>
+  <div class="acts">
+    <button class="go" id="startDay" type="button">開始這一天</button>
+    <button class="ghost" id="startFree" type="button">自由購物模式</button>
+  </div>
+</section>
+
+<header class="top"><div class="in">
+  <p class="eyebrow">2026 價目表 · 新台幣 · US$1 ≈ NT$31</p>
+  <h1>馬斯克的揮霍遊戲</h1>
+  <p class="lede">戶頭裡有新台幣 29 兆元。挑商品、調數量，把錢花光，最後結帳看還剩多少、還能買幾台法拉利。</p>
+</div></header>
+
+<div class="band"><div class="in">
+  <div class="clockrow" id="clockrow" hidden>
+    <div><span class="lab" id="clockDay">第 1 天</span><div class="clk" id="clk">08:00</div><div class="clkact" id="clkact">起床，決定早餐</div></div>
+    <div class="clkr"><span class="phase" id="phase">早上</span><button class="ghost sm" id="home" type="button">回首頁</button></div>
+  </div>
+  <div class="bal-row"><span class="lab">剩餘資金 TWD</span><span class="zh" id="zh"></span></div>
+  <div class="bal" id="bal"></div>
+  <div class="meter" aria-hidden="true"><i id="fill"></i></div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="商品類別"></nav>
+</div></div>
+
+<main class="in">
+  <section class="tools">
+    <button class="ghost" id="reset" type="button">全部歸零</button>
+    <button class="ghost" id="home2" type="button">回首頁</button>
+  </section>
+  <div id="list"></div>
+  <p class="foot">價格為 2026 年的公開定價或市場概略行情，依 US$1 ≈ NT$31 換算，部分為二手收藏價，僅供遊戲參考。飲食與小確幸直接以新台幣概略價計，餐廳為每人價，實際依菜單與服務費而定。投資損益與租金營收是隨機模擬的一天結果，每次結帳會重新計算，投資損益固定以「美股大漲日」情境計算，台股與基金跟著連動，不代表真實報酬，也不是投資建議。請全公司的項目，以特斯拉 2025 年底全球員工 134,785 人（2025 年報）乘以每人單價計算；公司以市值概估（非上市公司為估值），實際收購需另付溢價；買下公司後，每天加上該公司概估年營收的 1/365，這是營收不是獲利，數字為概略值；餐廳價格為每人概略價，米其林星級與名店價格僅供遊戲參考；服飾的 2026 款式為概略分類，並非逐款官方型號，圖示為款式示意。法拉利以 Purosangue 約 US$400,000 換算。馬斯克的一天裡，特斯拉營收以 2025 年全公司營收約 US$950 億概估日均，馬斯克持股約 20%（2026 年 6 月向美國證管會申報為 19.9%），為概略估算。</p>
+  <p class="foot">「官網」連到品牌首頁，不是該商品的頁面；「看圖片」會用 Google 圖片搜尋這個商品名稱。兩個都會在新分頁開啟。</p>
+</main>
+
+<div class="dock"><div class="in">
+  <label class="step" for="step">每次
+    <select id="step" aria-label="每次增減數量">
+      <option value="1">±1</option><option value="10">±10</option><option value="100">±100</option>
+      <option value="1000">±1,000</option><option value="10000">±10,000</option><option value="100000">±100,000</option>
+      <option value="1000000">±1,000,000</option>
+    </select>
+  </label>
+  <button class="go" id="go" type="button">結帳</button>
+</div></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="結帳明細" hidden>
+  <div class="in" id="sheetBody"></div>
+</div>
+
+<script>
+(function(){
+  var FX = 31;
+  var BUDGET = 29000000000000;
+  var FERRARI = 400000 * FX;
+  var TESLA_DAY = Math.round(95e9 / 365 * FX * 0.199);
+  var DATA = [
+    {id:'h', name:'房子', items:[
+      ['舊金山灣區公寓','兩房兩衛 · 近渡輪大樓',1800000],
+      ['台北信義區 80 坪豪宅','電梯大樓 · 含三個車位',4500000],
+      ['東京港區塔樓頂層','三房 · 眺望東京灣',9000000],
+      ['瑞士聖莫里茨木屋','阿爾卑斯滑雪小屋',45000000],
+      ['法國羅亞爾河古堡','十六世紀 · 附葡萄園',60000000],
+      ['加州 Bel-Air 山頂莊園','泳池 · 電影院 · 酒窖',120000000],
+      ['馬爾地夫私人島嶼','珊瑚礁環繞 · 含水上飛機碼頭',50000000],
+      ['倫敦海德公園豪宅','白色灰泥連棟 · 頂級地段',150000000],
+      ['蔚藍海岸海濱莊園','尼斯至坎城之間 · 私人碼頭',200000000],
+      ['紐約中央公園頂層公寓','超高樓頂層 · 360 度視野',240000000],
+      ['夏威夷整座島嶼','拉奈島級 · 約 141 平方英里',300000000],
+      ['德州十萬英畝牧場','自有跑道 · 獨立水源',300000000],
+      ['孟買 Antilia 級私人高塔','27 層 · 直升機停機坪',2000000000]
+    ]},
+    {id:'r', name:'房子投資', twd:true, kind:'rent', items:[
+      ['東京套房出租','月租約 NT$28,000 · 出租率約 94%',8000000,{rent:28000,occ:0.94}],
+      ['高雄小資套房','月租約 NT$15,000 · 出租率約 93%',9000000,{rent:15000,occ:0.93}],
+      ['台北小套房','月租約 NT$18,000 · 出租率約 95%',12000000,{rent:18000,occ:0.95}],
+      ['京都民宿','日房價約 NT$9,000 · 住房率約 60%',15000000,{rent:270000,occ:0.6}],
+      ['新北電梯大樓三房','月租約 NT$28,000 · 出租率約 92%',18000000,{rent:28000,occ:0.92}],
+      ['台北兩房','月租約 NT$38,000 · 出租率約 93%',25000000,{rent:38000,occ:0.93}],
+      ['花蓮海景民宿','日房價約 NT$8,000 · 住房率約 55%',30000000,{rent:240000,occ:0.55}],
+      ['杜拜公寓','月租約 NT$150,000 · 出租率約 90%',35000000,{rent:150000,occ:0.9}],
+      ['紐約公寓','月租約 NT$150,000 · 出租率約 92%',40000000,{rent:150000,occ:0.92}],
+      ['倫敦公寓','月租約 NT$180,000 · 出租率約 90%',50000000,{rent:180000,occ:0.9}],
+      ['台中七期豪宅','月租約 NT$90,000 · 出租率約 88%',60000000,{rent:90000,occ:0.88}],
+      ['台北信義區豪宅','月租約 NT$250,000 · 出租率約 85%',140000000,{rent:250000,occ:0.85}],
+      ['一樓店面','月租約 NT$250,000 · 出租率約 90%',150000000,{rent:250000,occ:0.9}],
+      ['台北整棟老公寓（12 戶）','整棟月租約 NT$300,000 · 出租率約 90%',200000000,{rent:300000,occ:0.9}],
+      ['台北商辦整層','月租約 NT$450,000 · 出租率約 88%',300000000,{rent:450000,occ:0.88}]
+    ]},
+    {id:'w', name:'手錶', items:[
+      ['Casio G-Shock GA-2100','八角形 · 樹脂錶殼',110],
+      ['Apple Watch Ultra 3','鈦金屬 · 衛星連線',799],
+      ['Omega Speedmaster Moonwatch','登月錶 · 手上鍊',7500],
+      ['Cartier Santos','方形經典 · 鋼款',9000],
+      ['Rolex Submariner Date','潛水錶 · 904L 鋼',10500],
+      ['Hublot Big Bang','融合系列 · 鈦金屬',20000],
+      ['Rolex Daytona 鋼款','市場行情 · 常需排隊',30000],
+      ['Vacheron Constantin Overseas','自動上鍊 · 鋼款',32000],
+      ['A. Lange & Söhne Lange 1','大日期 · 偏心錶盤',50000],
+      ['Audemars Piguet Royal Oak','自動 · 鋼款',60000],
+      ['Patek Philippe Nautilus','白金款 · 市場行情',150000],
+      ['Richard Mille RM 11-03','飛返計時 · 碳纖維',250000],
+      ['Rolex Daytona 彩虹','彩虹寶石圈 · 白金',450000],
+      ['Jacob & Co. Astronomia','天體陀飛輪 · 工藝款',600000],
+      ['Patek Philippe Grandmaster Chime','20 種複雜功能 · 限量',3000000],
+      ['Graff Hallucination','彩鑽珠寶腕錶 · 約 110 克拉彩鑽',55000000],
+      ["Rolex Datejust 41","鋼款 · 概估",10500],
+      ["Rolex GMT-Master II","雙時區 · 概估",11500],
+      ["Cartier Tank Louis Cartier","黃金款 · 概估",14000],
+      ["Jaeger-LeCoultre Reverso","經典翻轉 · 概估",12000],
+      ["Girard-Perregaux Laureato","鋼款 · 概估",14000],
+      ["Chopard L.U.C","手工機芯 · 概估",25000],
+      ["Piaget Polo","超薄 · 概估",25000],
+      ["Franck Muller Vanguard","概估",25000],
+      ["Audemars Piguet Code 11.59","概估",32000],
+      ["Bvlgari Octo Finissimo","超薄 · 概估",20000],
+      ["F.P. Journe Chronomètre Bleu","概估",45000],
+      ["Patek Philippe Calatrava","玫瑰金 · 概估",40000],
+      ["Rolex Day-Date 40","18K 黃金 · 概估",42000],
+      ["Rolex Cosmograph Daytona 18K","黃金款 · 概估",45000],
+      ["Rolex Sky-Dweller","白金 · 概估",50000],
+      ["Roger Dubuis Excalibur","概估",70000],
+      ["Vacheron Constantin Overseas Tourbillon","概估",150000],
+      ["Patek Philippe Aquanaut 鋼款","市場行情 · 概估",80000],
+      ["A. Lange & Söhne Datograph","概估",90000],
+      ["Audemars Piguet Royal Oak 萬年曆","概估",100000],
+      ["Patek Philippe Perpetual Calendar 5327","概估",100000],
+      ["Patek Philippe Nautilus 5711 鋼款","停產 · 市場行情 · 概估",130000],
+      ["Richard Mille RM 67-02","概估",190000],
+      ["Richard Mille RM 35-02","概估",220000],
+      ["Patek Philippe Grand Complication 5270","概估",250000],
+      ["Greubel Forsey Double Tourbillon","概估",600000],
+      ["Richard Mille RM 27-04 Rafael Nadal 陀飛輪","概估",1000000],
+      ["Vacheron Constantin Tour de l'Île","概估",1500000],
+      ["Patek Philippe Sky Moon Tourbillon 6002","概估",1500000],
+      ["Patek Philippe 1518 鋼款","2016 拍賣紀錄 · 約 US$ 1,100 萬",11000000],
+      ["Rolex Daytona Paul Newman（Winner）","2017 拍賣紀錄 · 約 US$ 1,780 萬",17800000],
+      ["Patek Philippe Henry Graves Supercomplication","2014 拍賣紀錄 · 約 US$ 2,400 萬",24000000],
+      ["Patek Philippe 6300A-010 Grandmaster Chime 唯一款","2019 拍賣紀錄 · 約 US$ 3,100 萬",31000000]
+    ]},
+    {id:'b', name:'公路車', items:[
+      ['Giant TCR Advanced Pro','碳纖維 · 入門競賽',4000],
+      ['Canyon Ultimate CF SLX','直售品牌 · 電子變速',6500],
+      ['De Rosa Merak','義大利 · 傳統造型',11000],
+      ['Look 795 Blade RS','法國 · 空力',12000],
+      ['Factor Ostro VAM','英國 · 極輕',13000],
+      ['Cannondale SuperSix EVO','LAB71 等級',13500],
+      ['Cervélo S5','空力公路車 · Dura-Ace Di2',14000],
+      ['Specialized S-Works Tarmac SL8','輕量全能 · Di2',14000],
+      ['BMC Teammachine R','瑞士 · 輕量',14000],
+      ['Trek Madone SLR','空力 · 內走線',14500],
+      ['Pinarello Dogma F','不對稱車架 · 義大利',15000],
+      ['Colnago V4Rs','義大利 · 競賽',15000],
+      ['Cervélo P5','計時 / 三鐵車',16000],
+      ['客製 24K 鍍金公路車','訂製 · 鑽石鑲嵌',120000]
+    ]},
+    {id:'p', name:'手機', note:'馬斯克只用 iPhone', items:[
+      ['iPhone 17','6.3 吋',799],
+      ['iPhone Air','超薄 · eSIM 機型',999],
+      ['iPhone 17 Pro','鋁合金 · 三鏡頭',1099],
+      ['iPhone 17 Pro Max','6.9 吋 · 旗艦',1199],
+      ['Caviar 客製黃金 iPhone','純金機身 · 鑽石 logo',150000],
+      ["iPhone 18 Pro 256GB","2026/9 新機 · 台灣官方價",1448.3870967741937],
+      ["iPhone 18 Pro 512GB","2026/9 新機 · 台灣官方價",1674.1935483870968],
+      ["iPhone 18 Pro 1TB","2026/9 新機 · 台灣官方價",2158.064516129032],
+      ["iPhone 18 Pro 2TB","2026/9 新機 · 台灣官方價",2867.7419354838707],
+      ["iPhone 18 Pro Max 256GB","2026/9 新機 · 台灣官方價",1609.6774193548388],
+      ["iPhone 18 Pro Max 512GB","2026/9 新機 · 台灣官方價",1835.483870967742],
+      ["iPhone 18 Pro Max 1TB","2026/9 新機 · 台灣官方價",2319.3548387096776],
+      ["iPhone 18 Pro Max 2TB","2026/9 新機 · 台灣官方價",3029.032258064516],
+      ["iPhone Duo 256GB（摺疊）","蘋果首款摺疊 · 7.6 吋 · 10/23 開賣，預購中",2416.1290322580644],
+      ["iPhone Duo 512GB（摺疊）","10/23 開賣，預購中",2641.935483870968],
+      ["iPhone Duo 1TB（摺疊）","10/23 開賣，預購中",3125.8064516129034],
+      ["iPhone Duo 2TB（摺疊）","10/23 開賣，預購中",3835.483870967742]
+    ]},
+    {id:'n', name:'電腦配備', twd:true, items:[
+      ["Mac mini（M6）","2026/9 · 台灣官方起始價",29900],
+      ["Mac mini（M5 Pro）","2026/9 · 台灣官方起始價",59900],
+      ["MacBook Pro 14 吋（M5 Pro）","台灣官方起始價",74900],
+      ["MacBook Pro 16 吋（M5 Pro）","台灣官方起始價",89900],
+      ["Mac Studio（M5 Max）","2026 · 台灣官方起始價",84900],
+      ["MacBook Pro 14 吋（M5 Max）","台灣官方起始價",119900],
+      ["MacBook Pro 16 吋（M5 Max）","台灣官方起始價",129900],
+      ["Mac Studio（M5 Ultra）","2026 · 台灣官方起始價",199900],
+      ["NVIDIA RTX 5090 顯示卡（原廠建議價）","US$1,999 換算",64000],
+      ["NVIDIA RTX 5090 顯示卡（目前市場行情）","第三方賣家 US$6,000 換算 · 概估",192000],
+      ["NVIDIA DGX Spark 桌上型 AI 電腦","概估 US$3,999",124000],
+      ["Sony WH-1000XM6 耳機","概估",13000],
+      ["機械鍵盤 Keychron Q6 Max","概估",6000],
+      ["Samsung Odyssey OLED G9 49 吋電競螢幕","概估",40000],
+      ["NVIDIA H100 AI 運算卡","單張 · 概估 US$30,000",930000],
+      ["NVIDIA B200 AI 運算卡","單張 · 概估 US$35,000",1085000],
+      ["NVIDIA DGX B200 伺服器","8 張 GPU · 概估 US$500,000",15500000],
+      ["NVIDIA GB200 NVL72 整櫃","72 張 GPU · 概估 US$3,000,000",93000000],
+      ["AI 資料中心 1 GW","整座 · 概估 US$500 億",1550000000000]
+    ]},
+    {id:'a', name:'汽車', items:[
+      ["Toyota Camry","最平價 · 2026 新款房車",30000],
+      ["Toyota Crown","2026 房車",45000],
+      ["Lexus ES 350","日系高級房車",45000],
+      ["Genesis G80","韓系高級房車",56000],
+      ["Audi A6","德系房車",60000],
+      ["BMW 5 系列 530i","德系房車",60000],
+      ["Mercedes-Benz E 300","德系房車",65000],
+      ["Lexus LS 500","旗艦房車",80000],
+      ["Genesis G90","旗艦房車",90000],
+      ["Audi A8 L","旗艦房車",100000],
+      ["Cadillac CT5-V Blackwing","美系性能房車",100000],
+      ["Porsche Panamera 4","性能房車",105000],
+      ["BMW 7 系列 740i","旗艦房車",110000],
+      ["Mercedes-Benz S 500","旗艦房車",125000],
+      ["BMW M5","性能房車",130000],
+      ["Toyota Century","日本皇室級房車",150000],
+      ["Mercedes-AMG S 63 E Performance","旗艦性能房車",190000],
+      ["Porsche Panamera Turbo S E-Hybrid","頂級性能房車",200000],
+      ["Mercedes-Maybach S 680","頂級後座房車 · V12",240000],
+      ["Bentley Flying Spur","英國 · 手工",250000],
+      ["Bentley Flying Spur Speed","英國 · W12 性能",290000],
+      ["Rolls-Royce Ghost","英國 · 旗艦房車",350000],
+      ["Rolls-Royce Phantom","英國 · 旗艦中的旗艦",500000],
+      ["Rolls-Royce Phantom 客製長軸","訂製內裝 · 星空頂",800000],
+      ["Lexus LS 500h","日系旗艦油電房車",85000],
+      ["Genesis G90 長軸","韓系旗艦房車",110000],
+      ["Audi RS 7 Performance","性能房車",130000],
+      ["BMW 760i xDrive","V8 旗艦房車",125000],
+      ["Porsche Panamera GTS","性能房車",150000],
+      ["Mercedes-Maybach S 580","後座房車",200000],
+      ["Mercedes-Maybach S 680 Night Series","V12 · 夜色系列 · 概估",270000],
+      ["Bentley Flying Spur Mulliner","英國 · 手工訂製",350000],
+      ["Rolls-Royce Ghost Black Badge","英國 · 黑標",400000],
+      ["Rolls-Royce Ghost 長軸","英國 · 旗艦房車",380000],
+      ["Rolls-Royce Phantom 長軸","英國 · 旗艦房車",530000],
+      ["Rolls-Royce Phantom 全客製（Bespoke）","全車訂製 · 概估",1500000]
+    ]},
+    {id:'e', name:'電動車', items:[
+      ['Tesla Model 3','後驅 · 標準',40000],
+      ['Tesla Model Y','休旅 · 長程',48000],
+      ['Hyundai Ioniq 5 N','性能休旅',67000],
+      ['Rivian R1T','電動皮卡',72000],
+      ['Xiaomi SU7 Ultra','紐柏林紀錄車',75000],
+      ['Porsche Macan 4 Electric','電動休旅',78000],
+      ['Lucid Gravity','豪華休旅',95000],
+      ['Tesla Cybertruck Cyberbeast','不鏽鋼 · 三馬達',100000],
+      ['Mercedes-Benz G 580 EQ','電動 G 級 · 四馬達',162000],
+      ['Audi RS e-tron GT','旗艦跑房',170000],
+      ['Porsche Taycan Turbo GT','性能旗艦',230000],
+      ['BYD Yangwang U9','電動超跑',233000],
+      ['Lucid Air Sapphire','1,200 匹 · 跑房',250000],
+      ['Tesla Semi','電動大貨卡',260000],
+      ['Rolls-Royce Spectre','電動勞斯萊斯',420000],
+      ['Rimac Nevera','電動超跑 · 1,914 匹',2400000],
+      ['Pininfarina Battista','電動超跑 · 義大利',2500000]
+    ]},
+    {id:'g', name:'包包', items:[
+      ['Goyard Saint Louis','帆布 · 手工',1700],
+      ['Louis Vuitton Neverfull MM','老花帆布',2100],
+      ['Louis Vuitton Speedy 30','經典波士頓',2200],
+      ['Saint Laurent Loulou','中型',3000],
+      ['Gucci Jackie 1961','經典復刻',3400],
+      ['Bottega Veneta Cassette','編織小羊皮',3500],
+      ['Celine Triomphe','小牛皮',3500],
+      ['Fendi Baguette','腋下包',3600],
+      ['Prada Galleria','Saffiano 皮革',4100],
+      ['Dior Lady Dior 中型','藤格紋',6500],
+      ['Hermès Kelly 25','Togo 皮革',11500],
+      ['Chanel Classic Flap 中型','菱格紋羊皮',11500],
+      ['Hermès Birkin 25','Togo 皮革 · 需配貨',13000],
+      ['Hermès Birkin Himalaya','霧面鱷魚皮 · 拍賣行情',300000],
+      ['Prada Re-Edition 2005','尼龍 · 迷你肩背包',1700],
+      ['Goyard Artois','帆布托特包',2000],
+      ['Prada Cleo','刷面皮革 · 腋下包',2000],
+      ['Burberry Lola','絎縫小羊皮',2000],
+      ['Gucci Horsebit 1955','馬銜扣 · 皮革',2500],
+      ['Balenciaga City','機車包 · 羊皮',2500],
+      ['Saint Laurent Kate','鏈帶 · 信封包',2500],
+      ['Louis Vuitton Alma BB','Epi / 老花 · 手提',2300],
+      ['Louis Vuitton Keepall 50','旅行袋 · 老花',2300],
+      ['Valentino Rockstud','鉚釘 · 小牛皮',2700],
+      ['Louis Vuitton Pochette Métis','老花 · 兩用',2700],
+      ['Hermès Picotin 18','Clémence 皮革 · 水桶包',3000],
+      ['Loewe Flamenco','抽繩 · 手提',3000],
+      ['Hermès Evelyne','Togo · 斜背',3300],
+      ['Loewe Puzzle','幾何剪裁 · 小牛皮',3400],
+      ['Gucci Bamboo 1947','竹節提把',3500],
+      ['Dior Book Tote','刺繡帆布',3500],
+      ['Dior Saddle','馬鞍包 · 經典復刻',4500],
+      ['Fendi Peekaboo','雙開口 · 手工',4500],
+      ['Chanel 22 Bag','中型 · 小牛皮',5500],
+      ['Chanel 25','中型 · 羊皮',5500],
+      ['Chanel 19','菱格 · 鏈帶',6000],
+      ['Louis Vuitton Capucines','小牛皮 · 手工',6000],
+      ['Delvaux Brillant','比利時 · 手工',7000],
+      ['Hermès Kelly 28','Epsom 皮革',12500],
+      ['Hermès Constance 18','H 扣 · 斜背',12500],
+      ['Hermès Birkin 30','Togo 皮革',13500],
+      ['Hermès Birkin 35','Togo 皮革',14500],
+      ['Mouawad 1001 Nights 鑽石包','鑽石珠寶包 · 拍賣紀錄款',3800000],
+      ["Longchamp Le Pliage","尼龍摺疊包",150],
+      ["Coach Tabby","肩背包",450],
+      ["Michael Kors Jet Set","手提包",350],
+      ["Kate Spade Knott","小號肩背",300],
+      ["Tory Burch T Monogram","肩背包",500],
+      ["MCM Stark 後背包","Visetos 印花",800],
+      ["Furla Metropolis","小牛皮",400],
+      ["Marc Jacobs The Tote Bag","帆布托特",350],
+      ["Polène Numéro Un","巴黎 · 小牛皮",400],
+      ["Chloé Woody Tote","帆布托特",500],
+      ["Chloé Marcie","肩背包",2200],
+      ["Jacquemus Le Chiquito","迷你手提",600],
+      ["Miu Miu Arcadie","絎縫小羊皮",2800],
+      ["Miu Miu Wander","小羊皮",2800],
+      ["Bottega Veneta Jodie","編織小羊皮",3500],
+      ["Bottega Veneta Andiamo","編織小羊皮",4500],
+      ["Loewe Hammock","小牛皮",3400],
+      ["Loewe Amazona","經典手提",3200],
+      ["Celine 16","小牛皮",4800],
+      ["Celine Belt Bag","手提包",3500],
+      ["Fendi Mon Tresor","迷你桶包",2400],
+      ["Fendi First","小牛皮",5000],
+      ["Dior Caro","菱格紋",4500],
+      ["Dior 30 Montaigne","經典肩背",4700],
+      ["Dior Bobby","皮革肩背",3800],
+      ["Louis Vuitton Neonoe","水桶包",2800],
+      ["Louis Vuitton OnTheGo MM","托特包",3500],
+      ["Louis Vuitton Pochette Accessoires","小型",1200],
+      ["Louis Vuitton Petite Malle","硬箱造型",4000],
+      ["Louis Vuitton Twist","小牛皮",4500],
+      ["Gucci Dionysus","虎頭扣",3500],
+      ["Gucci Diana","竹節提把",3500],
+      ["Gucci Ophidia","帆布",2000],
+      ["Prada Re-Edition 2000","尼龍",1500],
+      ["Prada Arqué","皮革手提",3000],
+      ["Prada Triangle","經典標誌",2500],
+      ["Saint Laurent Sac de Jour","手提包",3500],
+      ["Saint Laurent Le 5 à 7","小牛皮",2700],
+      ["Saint Laurent Icare","大型托特",3300],
+      ["Goyard Anjou","雙面托特",2000],
+      ["Goyard Cap Vert","軟式小包",2100],
+      ["Moynat Réjane","法國 · 手工",6000],
+      ["Delvaux Tempête","比利時 · 手工",6500],
+      ["Hermès Garden Party","帆布皮革托特",3000],
+      ["Hermès Lindy 26","Clémence 皮革",9500],
+      ["Hermès Bolide 27","Clémence 皮革",9500],
+      ["Hermès Constance 24","Epsom 皮革",13500],
+      ["Hermès Birkin 40","Togo 皮革",15500],
+      ["Hermès Kelly Pochette","手拿包",4000],
+      ["Chanel Boy Bag","中型",8500],
+      ["Chanel Gabrielle","斜背包",6500],
+      ["Chanel Deauville Tote","帆布托特",4000],
+      ["Chanel Maxi Flap","大型 CF",12500],
+      ["Chanel Mini Flap","迷你",5000],
+      ["Hermès Birkin Touch","鱷魚皮 · 鑲鑽五金",80000],
+      ["Hermès Kelly 鱷魚皮","鱷魚皮 · 25 公分",55000],
+      ["Hermès Birkin 鱷魚皮 30","鱷魚皮 · 限量",70000],
+      ["Chanel 限量秀款包","巴黎時裝秀 · 限量",30000]
+    ]},
+    {id:'c', name:'名牌衣服', items:[
+      ["Uniqlo U 圓領 T 恤","2026 春夏款 · 純棉",20,"tee"],
+      ["Zara 西裝外套","2026 秋冬款",120,"suit"],
+      ["The North Face Nuptse 羽絨外套","1996 復刻款",330,"jacket"],
+      ["Off-White 印花 T 恤","2026 款",450,"tee"],
+      ["Gucci Logo T 恤","純棉",650,"tee"],
+      ["Stone Island 工裝襯衫外套","羅盤臂章",600,"shirt"],
+      ["Hugo Boss 西裝","2026 款 · 成衣",800,"suit"],
+      ["Versace 巴洛克印花襯衫","2026 春夏款",900,"shirt"],
+      ["Maison Margiela 針織衫","2026 秋冬款",1000,"knit"],
+      ["Balenciaga 連帽衛衣","寬版",1250,"hoodie"],
+      ["Fendi FF 針織衫","2026 秋冬款",1400,"knit"],
+      ["Canada Goose 羽絨外套","極地系列",1600,"jacket"],
+      ["Armani 西裝","2026 款 · 成衣",2200,"suit"],
+      ["Moncler 羽絨外套","法式輕量",2300,"jacket"],
+      ["Alexander McQueen 西裝外套","2026 秋冬款",2500,"suit"],
+      ["Burberry 經典風衣","格紋內裡",2800,"coat"],
+      ["Prada 尼龍外套","Re-Nylon",2800,"jacket"],
+      ["Max Mara 經典大衣","2026 秋冬款 · 羊毛喀什米爾",3500,"coat"],
+      ["Celine 西裝外套","2026 秋冬款",3500,"suit"],
+      ["Valentino 洋裝","2026 春夏款",3500,"dress"],
+      ["Givenchy 皮外套","2026 秋冬款",3500,"leather"],
+      ["Dior 西裝外套","2026 秋冬款",4000,"suit"],
+      ["Louis Vuitton 皮夾克","小羊皮",4500,"leather"],
+      ["Ermenegildo Zegna 西裝","義大利 · 成衣",4500,"suit"],
+      ["Loewe 皮夾克","2026 秋冬款",4500,"leather"],
+      ["Tom Ford 西裝","經典剪裁",5500,"suit"],
+      ["Saint Laurent 皮夾克","2026 秋冬款",5500,"leather"],
+      ["Bottega Veneta 皮夾克","編織紋",6500,"leather"],
+      ["Loro Piana 喀什米爾大衣","Storm System 防風防潑水",6500,"coat"],
+      ["Brunello Cucinelli 喀什米爾大衣","手工",7000,"coat"],
+      ["Chanel 粗花呢外套","2026 款 · 經典",7500,"suit"],
+      ["Savile Row 訂製西裝","倫敦 · 全手工 · 約 8 週",8000,"suit"],
+      ["Brioni 西裝","羅馬 · 手工",9000,"suit"],
+      ["Kiton 手工西裝","拿坡里 · 全手工",11000,"suit"],
+      ["Hermès 小羊皮外套","皮革",12000,"leather"],
+      ["Stefano Ricci 鱷魚皮夾克","義大利 · 手工",35000,"leather"],
+      ["Hermès 鱷魚皮大衣","頂級皮革 · 訂製",80000,"coat"],
+      ["Dior 高級訂製晚禮服","巴黎 · 手工 · 數百小時",120000,"dress"],
+      ["Chanel 高級訂製禮服","巴黎 · 手工 · 數百小時",180000,"dress"],
+      ["Coach 皮外套","2026 秋冬款",600,"leather"],
+      ["Michael Kors 風衣","2026 款",300,"coat"],
+      ["Suitsupply 西裝","2026 款",500,"suit"],
+      ["Brooks Brothers 西裝","美式",700,"suit"],
+      ["Stone Island 工裝褲","羅盤臂章",450,"pants"],
+      ["Acne Studios 針織衫","2026 秋冬款",400,"knit"],
+      ["AMI Paris 針織外套","2026 秋冬款",500,"knit"],
+      ["Ralph Lauren Purple Label 西裝","2026 款",1800,"suit"],
+      ["Canali 西裝","義大利 · 成衣",2000,"suit"],
+      ["Loro Piana 喀什米爾毛衣","2026 秋冬款",1400,"knit"],
+      ["Miu Miu 迷你裙","2026 春夏款",1100,"skirt"],
+      ["Prada 尼龍裙","Re-Nylon",1200,"skirt"],
+      ["Prada 西裝褲","2026 款",1300,"pants"],
+      ["Loro Piana 休閒褲","2026 款",1200,"pants"],
+      ["Tom Ford 襯衫","2026 款",650,"shirt"],
+      ["Turnbull & Asser 襯衫","倫敦 · 手工",450,"shirt"],
+      ["Gucci 連帽夾克","2026 秋冬款",3000,"jacket"],
+      ["Gucci 洋裝","2026 春夏款",3500,"dress"],
+      ["Versace 洋裝","2026 春夏款",2500,"dress"],
+      ["Chanel 針織外套","2026 款",5000,"knit"],
+      ["Chanel 洋裝","2026 春夏款",6500,"dress"],
+      ["Chanel 皮外套","2026 秋冬款",8000,"leather"],
+      ["Dior 洋裝","2026 春夏款",5000,"dress"],
+      ["Dior 針織外套","2026 秋冬款",3500,"knit"],
+      ["Dior Bar 西裝外套","經典剪裁",4500,"suit"],
+      ["Louis Vuitton 針織衫","2026 秋冬款",2500,"knit"],
+      ["Louis Vuitton 風衣","2026 款",3800,"coat"],
+      ["Louis Vuitton 連帽外套","2026 款",3500,"jacket"],
+      ["Saint Laurent 襯衫","2026 款",1300,"shirt"],
+      ["Saint Laurent 皮褲","2026 款",4500,"pants"],
+      ["Bottega Veneta 針織衫","2026 秋冬款",2500,"knit"],
+      ["Loewe 風衣","2026 款",3500,"coat"],
+      ["Valentino 針織衫","2026 秋冬款",1500,"knit"],
+      ["Burberry 羊毛圍巾外套","2026 秋冬款",2200,"coat"],
+      ["Zegna 喀什米爾外套","2026 秋冬款",4500,"coat"],
+      ["Brunello Cucinelli 西裝","手工",8000,"suit"],
+      ["Brunello Cucinelli 長褲","2026 款",1500,"pants"],
+      ["Hermès 絲質襯衫","2026 款",1800,"shirt"],
+      ["Hermès 羊絨毛衣","2026 秋冬款",3500,"knit"],
+      ["Hermès 皮褲","小羊皮",9000,"pants"],
+      ["Hermès 洋裝","2026 春夏款",7000,"dress"],
+      ["Kiton 喀什米爾大衣","拿坡里 · 手工",15000,"coat"],
+      ["Stefano Ricci 絲質襯衫","義大利 · 手工",1500,"shirt"]
+    ]},
+    {id:'s', name:'鞋子', items:[
+      ['Adidas Samba','經典足球鞋',100],
+      ['Common Projects Achilles','小白鞋',450],
+      ['Golden Goose Super-Star','做舊',600],
+      ['Hermès Oran 涼鞋','小牛皮',800],
+      ['Gucci Ace','刺繡小白鞋',800],
+      ['Balenciaga Triple S','厚底老爹鞋',1100],
+      ['Christian Louboutin 高跟鞋','紅底',1100],
+      ['Dior B23','高筒運動鞋',1200],
+      ['Louis Vuitton Trainer','運動鞋',1300],
+      ['Saint Laurent 短靴','皮革',1300],
+      ['John Lobb 牛津鞋','手工',1900],
+      ['Berluti 牛津鞋','Alessandro',2300],
+      ['Dior x Air Jordan 1 High','收藏市場價',9000],
+      ['Nike Air Mag','自動綁鞋帶 · 收藏品',100000],
+      ['Passion Diamond 鑽石高跟鞋','杜拜 · 紀錄款',17000000]
+    ]},
+    {id:'f', name:'飲食', twd:true, items:[
+      ['鼎泰豐小籠包套餐','小籠包 · 炒飯 · 湯品，每人',600],
+      ['五星飯店下午茶','三層點心 · 茶飲，每人',1800],
+      ['高級火鍋和牛套餐','肉盤 · 海鮮盤，每人',2200],
+      ['五星飯店自助晚餐','海鮮 · 現切烤肉，每人',2800],
+      ['欣葉頂級台菜宴席','合菜 · 熱炒，每人',3000],
+      ['日式燒肉和牛套餐','A5 和牛 · 嚴選部位，每人',4500],
+      ['法式餐廳品味套餐','前菜到甜點，每人',6000],
+      ['頤宮粵式料理晚餐','港式 · 米其林星級，每人',8000],
+      ['JL Studio 主廚套餐','創意料理 · 米其林星級，每人',8000],
+      ['RAW 主廚晚餐','台灣食材 · 米其林星級，每人',9000],
+      ['頂級鐵板燒套餐','松葉蟹 · 和牛，每人',10000],
+      ['頂級板前壽司 Omakase','師傅現捏 · 每人',12000],
+      ['法式餐廳搭餐酒套餐','全套 · 含酒款搭配，每人',18000],
+      ['餐廳加點 Pétrus 一瓶','波爾多名莊',150000],
+      ['私廚主廚到府餐會','10 人份 · 全套',250000],
+      ['Romanée-Conti 一瓶','布根地 · 夢幻酒款',700000]
+    ]},
+    {id:'k', name:'小確幸', twd:true, items:[
+      ['茶葉蛋','超商 · 一顆',13],
+      ['捷運單程','台北捷運 · 起跳',20],
+      ['超商美式咖啡','中杯 · 一杯',45],
+      ['夜市烤玉米','一支',60],
+      ['珍珠奶茶','手搖 · 一杯',70],
+      ['蚵仔煎','夜市 · 一份',70],
+      ['雞排','夜市 · 一塊',90],
+      ['便當','排骨 / 雞腿 · 一個',100],
+      ['鹽酥雞','綜合 · 一袋',120],
+      ['星巴克大杯拿鐵','一杯',165],
+      ['牛肉麵','紅燒 · 一碗',250],
+      ['鼎泰豐小籠包','一籠 10 顆',270],
+      ['芒果冰','一盤',280],
+      ['電影票','全票 · 一張',330],
+      ['珍珠奶茶 加料升級','鮮奶 + 全套配料 · 一杯',500],
+      ['夜市掃攤一整晚','10 個攤位吃到飽',1500],
+      ["請全公司喝珍珠奶茶","特斯拉全球員工 134,785 人 × NT$70",9434950],
+      ["請全公司喝珍珠奶茶（加料升級）","特斯拉全球員工 134,785 人 × NT$500",67392500],
+    ]},
+    {id:'v', name:'投資', twd:true, kind:'inv', items:[
+      ["貨幣市場基金","每口 NT$10 萬 · 日波動約 0.02%",100000,{mu:0.00012,sigma:0.0002,rho:0}],
+      ["元大美債 20 年 ETF（00679B）","每口 NT$10 萬 · 日波動約 0.7%",100000,{mu:0.0001,sigma:0.007,rho:0.1}],
+      ["債券基金","每口 NT$10 萬 · 日波動約 0.3%",100000,{mu:0.00015,sigma:0.003,rho:0.1}],
+      ["高收益債基金","每口 NT$10 萬 · 日波動約 0.4%",100000,{mu:0.0003,sigma:0.004,rho:0.4}],
+      ["全球股票基金","每口 NT$10 萬 · 日波動約 0.8%",100000,{mu:0.0003,sigma:0.008,rho:0.7}],
+      ["全球科技基金","每口 NT$10 萬 · 日波動約 1.1%",100000,{mu:0.0004,sigma:0.011,rho:0.8}],
+      ["新興市場基金","每口 NT$10 萬 · 日波動約 0.9%",100000,{mu:0.0003,sigma:0.009,rho:0.6}],
+      ["元大高股息 ETF（0056）","每口 NT$10 萬 · 日波動約 0.8%",100000,{mu:0.0003,sigma:0.008,rho:0.7}],
+      ["國泰永續高股息 ETF（00878）","每口 NT$10 萬 · 日波動約 0.7%",100000,{mu:0.0003,sigma:0.007,rho:0.7}],
+      ["群益台灣精選高息 ETF（00919）","每口 NT$10 萬 · 日波動約 0.8%",100000,{mu:0.0003,sigma:0.008,rho:0.7}],
+      ["定存（年利率約 1.6%）","每口 NT$100 萬 · 幾乎不波動",1000000,{mu:4.4e-05,sigma:0,rho:0}],
+      ["黃金 ETF","每口 NT$100 萬 · 日波動約 1%",1000000,{mu:0.0003,sigma:0.01,rho:0}],
+      ["比特幣 ETF","每口 NT$100 萬 · 日波動約 3.5%",1000000,{mu:0.0006,sigma:0.035,rho:0.4}],
+      ["以太幣 ETF","每口 NT$100 萬 · 日波動約 4.5%",1000000,{mu:0.0007,sigma:0.045,rho:0.4}],
+      ["台股 元大台灣50（0050）","每口 NT$100 萬 · 日波動約 1%",1000000,{mu:0.0004,sigma:0.01,rho:0.7}],
+      ["台股 台積電（2330）","每口 NT$100 萬 · 日波動約 1.5%",1000000,{mu:0.0005,sigma:0.015,rho:0.7}],
+      ["台股 鴻海（2317）","每口 NT$100 萬 · 日波動約 1.8%",1000000,{mu:0.0004,sigma:0.018,rho:0.6}],
+      ["台股 聯發科（2454）","每口 NT$100 萬 · 日波動約 2%",1000000,{mu:0.0005,sigma:0.02,rho:0.6}],
+      ["台股 廣達（2382）","每口 NT$100 萬 · 日波動約 2.2%",1000000,{mu:0.0005,sigma:0.022,rho:0.6}],
+      ["台股 緯創（3231）","每口 NT$100 萬 · 日波動約 2.8%",1000000,{mu:0.0005,sigma:0.028,rho:0.6}],
+      ["台股 台達電（2308）","每口 NT$100 萬 · 日波動約 2%",1000000,{mu:0.0005,sigma:0.02,rho:0.6}],
+      ["台股 聯電（2303）","每口 NT$100 萬 · 日波動約 1.8%",1000000,{mu:0.0003,sigma:0.018,rho:0.6}],
+      ["台股 日月光投控（3711）","每口 NT$100 萬 · 日波動約 1.9%",1000000,{mu:0.0004,sigma:0.019,rho:0.6}],
+      ["台股 大立光（3008）","每口 NT$100 萬 · 日波動約 2.2%",1000000,{mu:0.0003,sigma:0.022,rho:0.5}],
+      ["台股 華碩（2357）","每口 NT$100 萬 · 日波動約 1.8%",1000000,{mu:0.0004,sigma:0.018,rho:0.6}],
+      ["台股 國泰金（2882）","每口 NT$100 萬 · 日波動約 1.2%",1000000,{mu:0.0003,sigma:0.012,rho:0.6}],
+      ["台股 富邦金（2881）","每口 NT$100 萬 · 日波動約 1.2%",1000000,{mu:0.0003,sigma:0.012,rho:0.6}],
+      ["台股 中華電（2412）","每口 NT$100 萬 · 日波動約 0.6%",1000000,{mu:0.0002,sigma:0.006,rho:0.4}],
+      ["台股 長榮（2603）","每口 NT$100 萬 · 日波動約 2.5%",1000000,{mu:0.0004,sigma:0.025,rho:0.5}],
+      ["台股 統一超（2912）","每口 NT$100 萬 · 日波動約 0.9%",1000000,{mu:0.0002,sigma:0.009,rho:0.5}],
+      ["美股 S&P 500 ETF（VOO）","每口 NT$100 萬 · 日波動約 0.9%",1000000,{mu:0.0004,sigma:0.009,rho:0.8,us:true}],
+      ["美股 全市場 ETF（VTI）","每口 NT$100 萬 · 日波動約 0.9%",1000000,{mu:0.0004,sigma:0.009,rho:0.8,us:true}],
+      ["美股 那斯達克 100 ETF（QQQ）","每口 NT$100 萬 · 日波動約 1.2%",1000000,{mu:0.0005,sigma:0.012,rho:0.8,us:true}],
+      ["美股 半導體 ETF（SOXX）","每口 NT$100 萬 · 日波動約 1.8%",1000000,{mu:0.0006,sigma:0.018,rho:0.8,us:true}],
+      ["美股 Apple","每口 NT$100 萬 · 日波動約 1.5%",1000000,{mu:0.0004,sigma:0.015,rho:0.8,us:true}],
+      ["美股 Microsoft","每口 NT$100 萬 · 日波動約 1.3%",1000000,{mu:0.0004,sigma:0.013,rho:0.8,us:true}],
+      ["美股 Alphabet","每口 NT$100 萬 · 日波動約 1.6%",1000000,{mu:0.0004,sigma:0.016,rho:0.8,us:true}],
+      ["美股 Amazon","每口 NT$100 萬 · 日波動約 1.7%",1000000,{mu:0.0004,sigma:0.017,rho:0.8,us:true}],
+      ["美股 Meta","每口 NT$100 萬 · 日波動約 2.1%",1000000,{mu:0.0005,sigma:0.021,rho:0.8,us:true}],
+      ["美股 NVIDIA","每口 NT$100 萬 · 日波動約 2.8%",1000000,{mu:0.0007,sigma:0.028,rho:0.8,us:true}],
+      ["美股 Broadcom","每口 NT$100 萬 · 日波動約 2.4%",1000000,{mu:0.0006,sigma:0.024,rho:0.8,us:true}],
+      ["美股 Tesla","每口 NT$100 萬 · 日波動約 3%",1000000,{mu:0.0005,sigma:0.03,rho:0.8,us:true}],
+      ["美股 Netflix","每口 NT$100 萬 · 日波動約 2%",1000000,{mu:0.0004,sigma:0.02,rho:0.8,us:true}],
+      ["美股 AMD","每口 NT$100 萬 · 日波動約 3%",1000000,{mu:0.0005,sigma:0.03,rho:0.8,us:true}],
+      ["美股 Palantir","每口 NT$100 萬 · 日波動約 3.5%",1000000,{mu:0.0007,sigma:0.035,rho:0.8,us:true}],
+      ["美股 波克夏 B","每口 NT$100 萬 · 日波動約 0.8%",1000000,{mu:0.0003,sigma:0.008,rho:0.8,us:true}],
+      ["美股 JPMorgan","每口 NT$100 萬 · 日波動約 1.2%",1000000,{mu:0.0003,sigma:0.012,rho:0.8,us:true}],
+      ["美股 Visa","每口 NT$100 萬 · 日波動約 1%",1000000,{mu:0.0003,sigma:0.01,rho:0.8,us:true}],
+      ["美股 Eli Lilly","每口 NT$100 萬 · 日波動約 1.7%",1000000,{mu:0.0005,sigma:0.017,rho:0.8,us:true}],
+      ["美股 Costco","每口 NT$100 萬 · 日波動約 1.1%",1000000,{mu:0.0003,sigma:0.011,rho:0.8,us:true}],
+      ["美股 Walmart","每口 NT$100 萬 · 日波動約 1%",1000000,{mu:0.0003,sigma:0.01,rho:0.8,us:true}],
+      ["美股 Coca-Cola","每口 NT$100 萬 · 日波動約 0.8%",1000000,{mu:0.0002,sigma:0.008,rho:0.8,us:true}],
+      ["美股 Disney","每口 NT$100 萬 · 日波動約 1.5%",1000000,{mu:0.0003,sigma:0.015,rho:0.8,us:true}],
+      ["美股 Oracle","每口 NT$100 萬 · 日波動約 2.2%",1000000,{mu:0.0005,sigma:0.022,rho:0.8,us:true}],
+      ["美股 Salesforce","每口 NT$100 萬 · 日波動約 1.7%",1000000,{mu:0.0004,sigma:0.017,rho:0.8,us:true}],
+      ["美股 Adobe","每口 NT$100 萬 · 日波動約 1.7%",1000000,{mu:0.0004,sigma:0.017,rho:0.8,us:true}],
+      ["美股 Uber","每口 NT$100 萬 · 日波動約 2.2%",1000000,{mu:0.0005,sigma:0.022,rho:0.8,us:true}],
+      ["美股 Intel","每口 NT$100 萬 · 日波動約 2.5%",1000000,{mu:0.0003,sigma:0.025,rho:0.8,us:true}],
+      ["美股 Nike","每口 NT$100 萬 · 日波動約 1.6%",1000000,{mu:0.0003,sigma:0.016,rho:0.8,us:true}],
+      ["美股 Starbucks","每口 NT$100 萬 · 日波動約 1.5%",1000000,{mu:0.0003,sigma:0.015,rho:0.8,us:true}],
+      ["美股 Boeing","每口 NT$100 萬 · 日波動約 1.9%",1000000,{mu:0.0004,sigma:0.019,rho:0.8,us:true}]
+    ]},
+    {id:'o', name:'興趣', twd:true, items:[
+      ["健身房月費","World Gym 單月",1800],
+      ["私人教練一堂","60 分鐘",2500],
+      ["瑜珈 / 皮拉提斯十堂","小班制",6000],
+      ["約會晚餐","高級餐廳 · 兩位",8000],
+      ["演唱會 VIP 前排票","一張",12000],
+      ["把妹一次","晚餐 · 小酒館 · 計程車",20000],
+      ["送花 99 朵玫瑰","整束 · 專人配送",20000],
+      ["潛水證照課程","開放水域 · 含裝備租借",20000],
+      ["高爾夫球一場","名門球場 · 含桿弟",8000],
+      ["頂級健身會籍（一年）","Equinox 等級",112000],
+      ["滑雪度假一週","日本二世古 · 雙人",300000],
+      ["NBA 球賽場邊座位","一場 · 兩位",400000],
+      ["分手費","好聚好散",500000],
+      ["馬術俱樂部（一年）","含馬房費",500000],
+      ["蜜月旅行","杜拜 + 馬爾地夫 · 雙人",800000],
+      ["F1 賽事包廂門票","三日 · 含餐飲",800000],
+      ["驚喜派對","包場 · DJ · 酒水",1000000],
+      ["求婚鑽戒","3 克拉",1500000],
+      ["高爾夫球場會籍","名門球場 · 終身",3000000],
+      ["婚禮（50 桌）","五星飯店 · 含婚紗攝影",5000000],
+      ["自家豪華健身房","含器材與裝潢",5000000],
+      ["離婚贍養費","一次付清",50000000]
+    ]},
+    {id:'q', name:'收藏', twd:true, items:[
+      ["Labubu 盲盒","一盒",400],
+      ["景品手辦","一隻",600],
+      ["Funko 限量公仔","一隻",2000],
+      ["Medicom Bearbrick 400%","潮流公仔",3000],
+      ["Good Smile 1/7 比例手辦","PVC 完成品",3500],
+      ["Steiff 泰迪熊","德國手工玩偶",5000],
+      ["LEGO UCS 大型收藏款","超大型積木",26000],
+      ["1/4 限量比例手辦","大型 · 限量",25000],
+      ["Medicom Bearbrick 1000%","潮流公仔 · 大型",28000],
+      ["KAWS 公仔（二手收藏）","市場行情",300000],
+      ["Banksy 版畫（二手市場）","市場行情",3000000],
+      ["Andy Warhol 絲印版畫","市場行情",6000000],
+      ["村上隆 畫作","市場行情",15000000],
+      ["寶可夢初版噴火龍 PSA 10","集換式卡牌 · 拍賣行情",13000000],
+      ["魔法風雲會 Black Lotus 初版","集換式卡牌 · 拍賣行情",17000000],
+      ["KAWS 畫作","市場行情",60000000],
+      ["Steiff 古董泰迪熊（拍賣紀錄款）","拍賣紀錄 · 約 US$210 萬",65000000],
+      ["草間彌生 南瓜雕塑","市場行情",150000000],
+      ["Banksy「碎紙機」畫作","2021 年拍賣紀錄 · 約 US$2,540 萬",787400000],
+      ["常玉 裸女畫作","拍賣行情 · 約 US$3,300 萬",1023000000],
+      ["梵谷 作品（拍賣行情）","約 US$1 億",3100000000],
+      ["畢卡索《阿爾及爾的女人》","2015 年拍賣紀錄 · 約 US$1.79 億",5561400000],
+      ["Andy Warhol《藍色鼠尾草瑪麗蓮》","2022 年拍賣紀錄 · 約 US$1.95 億",6045000000],
+      ["達文西《救世主》","2017 年拍賣紀錄 · 約 US$4.5 億",13950000000]
+    ]},
+    {id:'y', name:'遊艇飛機', items:[
+      ['私人潛艇 Triton 3300','載客 3 人 · 可潛 1,000 公尺',3000000],
+      ['Airbus H160 直升機','VIP 內裝',17000000],
+      ['Gulfstream G800','約 1 萬公里航程',72000000],
+      ['Gulfstream G700','超遠程商務機',78000000],
+      ['Bombardier Global 8000','高速商務機',78000000],
+      ['太空旅行 · 地球軌道 1 席','私人載人任務',55000000],
+      ['80 公尺超級遊艇','五層甲板 · 泳池',150000000],
+      ['Boeing BBJ 787 VIP','空中宮殿',250000000],
+      ['120 公尺超級遊艇','直升機機庫 · 潛艇艙',450000000],
+      ['Azzam 級 180 公尺遊艇','全球最長級',600000000]
+    ]},
+    {id:'z', name:'買下公司', note:'馬斯克自己的六家公司（特斯拉、SpaceX、X、xAI、Neuralink、The Boring Company）不在這裡，不能重複收購', kind:'co', items:[
+      ['統一超商 7-ELEVEN 台灣','零售 · 台灣',9e9,{rev:10000000000}],
+      ['長榮海運','貨櫃航運 · 台灣',1e10,{rev:9000000000}],
+      ['Nokia 諾基亞','通訊設備 · 芬蘭',2.8e10,{rev:21000000000}],
+      ['中華電信','電信 · 台灣',3e10,{rev:8000000000}],
+      ['國泰金控','金融 · 台灣',3e10,{rev:25000000000}],
+      ['BMW 寶馬','汽車 · 德國',5e10,{rev:150000000000}],
+      ['聯發科 MediaTek','手機晶片 · 台灣',6e10,{rev:17000000000}],
+      ['Mercedes-Benz 賓士','汽車 · 德國',6e10,{rev:155000000000}],
+      ['鴻海精密','電子代工 · 台灣',8e10,{rev:220000000000}],
+      ['Ferrari 法拉利','超跑 · 義大利',9e10,{rev:7300000000}],
+      ['Nike','運動服飾 · 美國',1e11,{rev:46000000000}],
+      ['Starbucks 星巴克','咖啡連鎖 · 美國',1e11,{rev:37000000000}],
+      ['Boeing 波音','航太 · 美國',1.5e11,{rev:70000000000}],
+      ['Xiaomi 小米','手機與電動車 · 中國',1.5e11,{rev:50000000000}],
+      ['Sony 索尼','電子與娛樂 · 日本',1.5e11,{rev:85000000000}],
+      ['Intel 英特爾','晶片 · 美國',1.5e11,{rev:53000000000}],
+      ['Adobe','軟體 · 美國',1.5e11,{rev:24000000000}],
+      ['Disney 迪士尼','娛樂 · 美國',2e11,{rev:94000000000}],
+      ['Uber','叫車平台 · 美國',2e11,{rev:44000000000}],
+      ["McDonald's 麥當勞",'速食 · 美國',2.2e11,{rev:26000000000}],
+      ['Salesforce','雲端軟體 · 美國',2.5e11,{rev:38000000000}],
+      ['Hermès 愛馬仕','精品 · 法國',2.5e11,{rev:16500000000}],
+      ['Nestlé 雀巢','食品 · 瑞士',2.5e11,{rev:100000000000}],
+      ['Toyota 豐田','汽車 · 日本',2.7e11,{rev:320000000000}],
+      ['Coca-Cola 可口可樂','飲料 · 美國',3e11,{rev:47000000000}],
+      ['Alibaba 阿里巴巴','電商 · 中國',3.5e11,{rev:140000000000}],
+      ['LVMH 路威酩軒','精品集團 · 法國',3.5e11,{rev:92000000000}],
+      ['AMD 超微','晶片 · 美國',3.5e11,{rev:34000000000}],
+      ['Procter & Gamble 寶僑','日用品 · 美國',3.5e11,{rev:84000000000}],
+      ['Costco 好市多','量販 · 美國',4e11,{rev:275000000000}],
+      ['Samsung Electronics 三星電子','電子 · 南韓',4.5e11,{rev:220000000000}],
+      ['Netflix','串流影音 · 美國',4.5e11,{rev:45000000000}],
+      ['ExxonMobil 埃克森美孚','石油 · 美國',5e11,{rev:340000000000}],
+      ['Mastercard 萬事達卡','支付 · 美國',5e11,{rev:28000000000}],
+      ['Oracle 甲骨文','資料庫與雲端 · 美國',6e11,{rev:57000000000}],
+      ['Visa','支付 · 美國',6.5e11,{rev:36000000000}],
+      ['Tencent 騰訊','遊戲與社群 · 中國',7e11,{rev:93000000000}],
+      ['Walmart 沃爾瑪','零售 · 美國',8e11,{rev:680000000000}],
+      ['JPMorgan 摩根大通','銀行 · 美國',8e11,{rev:180000000000}],
+      ['Eli Lilly 禮來','製藥 · 美國',9e11,{rev:60000000000}],
+      ['Berkshire Hathaway 波克夏','投資控股 · 美國',1e12,{rev:370000000000}],
+      ['TSMC 台積電','晶圓代工 · 台灣',1.5e12,{rev:120000000000}],
+      ['Broadcom 博通','晶片 · 美國',1.6e12,{rev:63000000000}],
+      ['Saudi Aramco 沙烏地阿美','石油 · 沙烏地阿拉伯',1.6e12,{rev:460000000000}],
+      ['Meta','社群與 AI · 美國',1.7e12,{rev:200000000000}],
+      ['Amazon 亞馬遜','電商與雲端 · 美國',2.4e12,{rev:700000000000}],
+      ['Alphabet（Google）','搜尋與 AI · 美國',3.5e12,{rev:400000000000}],
+      ['Microsoft 微軟','軟體與雲端 · 美國',3.8e12,{rev:280000000000}],
+      ['Apple 蘋果','消費電子 · 美國',4e12,{rev:410000000000}],
+      ['Nvidia 輝達','AI 晶片 · 美國',4.5e12,{rev:200000000000}]
+    ]}
+  ];
+
+  function S(d){
+    return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + d + '</svg>';
+  }
+  var ICONS = {
+    tee: S('<path d="M16 8 6 14l4 8 5-3v21h18V19l5 3 4-8-10-6q-8 6-16 0z"/>'),
+    polo: S('<path d="M16 8 6 14l4 8 5-3v21h18V19l5 3 4-8-10-6-8 8-8-8z"/><path d="M24 16v10"/>'),
+    shirt: S('<path d="M16 8 5 18l3 20 6-2 1-12v18h18V26l1 12 6 2 3-20L32 8q-8 6-16 0z"/><path d="M24 14v28"/>'),
+    hoodie: S('<path d="M17 8q7-6 14 0l11 8-3 22-6-2V40H15v-4l-6 2-3-22z"/><path d="M19 30h10v6H19z"/><path d="M21 12v6M27 12v6"/>'),
+    jacket: S('<path d="M14 8h20l8 6v22h-6v6H12v-6H6V14z"/><path d="M12 20h24M12 28h24M24 8v34"/>'),
+    coat: S('<path d="M16 6 8 12v32h13l3-26 3 26h13V12l-8-6q-8 6-16 0z"/><path d="M8 28h32"/>'),
+    suit: S('<path d="M16 6 8 12v30h32V12l-8-6-8 14z"/><path d="M24 20v22M20 30h.01M20 36h.01"/>'),
+    leather: S('<path d="M16 7 6 14v26h36V14L32 7l-8 7z"/><path d="m24 14 4 26"/>'),
+    dress: S('<path d="M19 6q5 6 10 0l-2 12 8 24H13l8-24z"/><path d="M21 18h6"/>'),
+    pants: S('<path d="M14 6h20l3 36H27l-3-20-3 20H11z"/><path d="M14 12h20"/>'),
+    skirt: S('<path d="M17 8h14l9 32H8z"/><path d="M17 14h14"/>'),
+    knit: S('<path d="M16 8 6 18l3 18 6-2v8h18v-8l6 2 3-18L32 8q-8 4-16 0z"/><path d="M15 38h18"/>')
+  };
+  var BRANDS = [["Mercedes", "https://www.mercedes-benz.com.tw/"], ["Maybach", "https://www.mercedes-benz.com.tw/"], ["Apple", "https://www.apple.com/tw/"], ["iPhone", "https://www.apple.com/tw/"], ["MacBook", "https://www.apple.com/tw/"], ["Mac mini", "https://www.apple.com/tw/"], ["Mac Studio", "https://www.apple.com/tw/"], ["Galaxy", "https://www.samsung.com/tw/"], ["Samsung", "https://www.samsung.com/tw/"], ["Pixel", "https://store.google.com/tw/"], ["Xiaomi", "https://www.mi.com/tw/"], ["Sony", "https://www.sony.com.tw/"], ["Tesla", "https://www.tesla.com/zh_tw"], ["Toyota", "https://www.toyota.com.tw/"], ["Lexus", "https://www.lexus.com.tw/"], ["BMW", "https://www.bmw.com.tw/"], ["Porsche", "https://www.porsche.com/taiwan/"], ["Rolex", "https://www.rolex.com/zh-hant"], ["Omega", "https://www.omegawatches.com/"], ["Patek", "https://www.patek.com/"], ["Audemars", "https://www.audemarspiguet.com/"], ["Cartier", "https://www.cartier.com/"], ["Hublot", "https://www.hublot.com/"], ["Richard Mille", "https://www.richardmille.com/"], ["Vacheron", "https://www.vacheron-constantin.com/"], ["G-Shock", "https://www.gshock.com/"], ["Jacob & Co", "https://www.jacobandco.com/"], ["Hermès", "https://www.hermes.com/tw/zh/"], ["Chanel", "https://www.chanel.com/"], ["Louis Vuitton", "https://tw.louisvuitton.com/"], ["Gucci", "https://www.gucci.com/tw/zh_tw/"], ["Prada", "https://www.prada.com/"], ["Dior", "https://www.dior.com/"], ["Fendi", "https://www.fendi.com/"], ["Celine", "https://www.celine.com/"], ["Saint Laurent", "https://www.ysl.com/"], ["Bottega", "https://www.bottegaveneta.com/"], ["Loewe", "https://www.loewe.com/"], ["Burberry", "https://tw.burberry.com/"], ["Balenciaga", "https://www.balenciaga.com/"], ["Valentino", "https://www.valentino.com/"], ["Versace", "https://www.versace.com/"], ["Goyard", "https://www.goyard.com/"], ["Moncler", "https://www.moncler.com/"], ["Canada Goose", "https://www.canadagoose.com/"], ["Uniqlo", "https://www.uniqlo.com/tw/zh_TW/"], ["Zara", "https://www.zara.com/tw/"], ["H&M", "https://www2.hm.com/zh_tw/"], ["Nike", "https://www.nike.com/tw/"], ["Adidas", "https://www.adidas.com.tw/"], ["Patagonia", "https://www.patagonia.com/"], ["Levi's", "https://www.levi.com/"], ["Zegna", "https://www.zegna.com/"], ["Tom Ford", "https://www.tomford.com/"], ["Brunello", "https://www.brunellocucinelli.com/"], ["Loro Piana", "https://www.loropiana.com/"], ["Giant", "https://www.giant-bicycles.com/tw"], ["Specialized", "https://www.specialized.com/"], ["Trek", "https://www.trekbikes.com/"], ["Pinarello", "https://pinarello.com/"], ["Colnago", "https://www.colnago.com/"], ["Canyon", "https://www.canyon.com/"], ["Cervélo", "https://www.cervelo.com/"], ["BMC", "https://www.bmc-switzerland.com/"], ["Cannondale", "https://www.cannondale.com/"], ["Ferrari", "https://www.ferrari.com/"], ["Rolls-Royce", "https://www.rolls-roycemotorcars.com/"], ["Bentley", "https://www.bentleymotors.com/"], ["Rimac", "https://www.rimac-automobili.com/"], ["Lucid", "https://lucidmotors.com/"], ["Rivian", "https://rivian.com/"], ["NVIDIA", "https://www.nvidia.com/zh-tw/"]];
+  function offUrl(n){
+    var l = n.toLowerCase();
+    for (var i = 0; i < BRANDS.length; i++) if (l.indexOf(BRANDS[i][0].toLowerCase()) > -1) return BRANDS[i][1];
+    return '';
+  }
+  function imgUrl(n){ return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(n); }
+  var ITEMS = [], byId = {};
+  DATA.forEach(function(c){
+    c.items.sort(function(a, b){ return a[2] - b[2]; });
+    c.items.forEach(function(r, i){
+      var it = {id:c.id + i, cat:c.id, name:r[0], sub:r[1], p:c.twd ? r[2] : Math.round(r[2] * FX), x:(r[3] && typeof r[3] === 'object') ? r[3] : null, ic:(typeof r[3] === 'string') ? r[3] : '', kind:c.kind || ''};
+      ITEMS.push(it); byId[it.id] = it;
+    });
+  });
+  var MINP = Math.min.apply(null, ITEMS.map(function(i){ return i.p; }));
+  var qty = {}, step = 1, cur = DATA[0].id;
+  var mode = 'intro', tag = '', extra = 0, day = 1, hour = 8, lie = false, snap = {}, log = [], mealType = 'b';
+  var BASE = 29000000000000;
+  var hist = [];
+
+  function $(s){ return document.querySelector(s); }
+  function num(n){ return n.toLocaleString('en-US'); }
+  function twd(n){ return 'NT$' + num(n); }
+  function zh(n){
+    if (n < 10000) return num(n);
+    var units = [[1e12,'兆'],[1e8,'億'],[1e4,'萬']], out = [], r = n;
+    for (var i = 0; i < units.length; i++){
+      var k = Math.floor(r / units[i][0]);
+      if (k > 0){ out.push(num(k) + units[i][1]); r -= k * units[i][0]; }
+      if (out.length === 2) break;
+    }
+    return out.join(' ');
+  }
+  function spent(){
+    var s = 0;
+    for (var k in qty) s += qty[k] * byId[k].p;
+    return s + extra;
+  }
+
+  function renderTabs(){
+    $('#tabs').innerHTML = DATA.map(function(c){
+      return '<button class="tab" role="tab" id="t-' + c.id + '" data-cat="' + c.id + '" aria-selected="' + (c.id === cur) + '">' +
+        c.name + '<span class="n" data-n="' + c.id + '"></span></button>';
+    }).join('');
+  }
+
+  function rowHTML(it){
+    var q = qty[it.id] || 0;
+    return '<article class="item' + (q ? ' on' : '') + '" data-id="' + it.id + '">' +
+      '<div class="meta">' + (it.ic ? '<span class="th">' + ICONS[it.ic] + '</span>' : '') + '<div class="mt"><h3>' + it.name + '</h3><p>' + it.sub + '</p><p class="lks">' + (offUrl(it.name) ? '<a class="lk" href="' + offUrl(it.name) + '" target="_blank" rel="noopener">官網</a>' : '') + '<a class="lk" href="' + imgUrl(it.name) + '" target="_blank" rel="noopener">看圖片</a></p></div></div>' +
+      '<div class="price">' + twd(it.p) + '</div>' +
+      '<div class="ctl">' +
+        '<button class="b" type="button" data-a="dec" aria-label="減少 ' + it.name + '">−</button>' +
+        '<input class="q" id="q-' + it.id + '" type="text" inputmode="numeric" autocomplete="off" value="' + num(q) + '" aria-label="' + it.name + ' 數量">' +
+        '<button class="b" type="button" data-a="inc" aria-label="增加 ' + it.name + '">+</button>' +
+        '<button class="max" type="button" data-a="max" aria-label="' + it.name + ' 買到最多">MAX</button>' +
+        '<span class="sub">' + (q ? '小計 ' + twd(q * it.p) : '') + '</span>' +
+      '</div></article>';
+  }
+
+  function renderList(){
+    var c = DATA.filter(function(x){ return x.id === cur; })[0];
+    $('#list').innerHTML = (c.note ? '<p class="cnote">' + c.note + '</p>' : '') + ITEMS.filter(function(i){ return i.cat === c.id; }).map(rowHTML).join('');
+    updateHeader();
+  }
+
+  function updateRow(id){
+    var el = document.querySelector('.item[data-id="' + id + '"]');
+    if (!el) return;
+    var it = byId[id], q = qty[id] || 0;
+    el.classList.toggle('on', q > 0);
+    el.querySelector('.q').value = num(q);
+    el.querySelector('.sub').textContent = q ? '小計 ' + twd(q * it.p) : '';
+  }
+
+  function updateHeader(){
+    var s = spent(), rem = BUDGET - s;
+    $('#bal').textContent = twd(rem);
+    $('#zh').textContent = rem < MINP ? '已花光' : zh(rem) + ' 元';
+    $('#fill').style.width = (s / BUDGET * 100) + '%';
+    document.body.classList.toggle('broke', rem < MINP);
+    var counts = {}, total = 0;
+    for (var k in qty){ counts[byId[k].cat] = (counts[byId[k].cat] || 0) + 1; total++; }
+    DATA.forEach(function(c){
+      var n = document.querySelector('[data-n="' + c.id + '"]');
+      if (n) n.textContent = counts[c.id] ? counts[c.id] : '';
+    });
+    $('#go').textContent = mode === 'day' ? '買好了 → ' + nextLabel() : (total ? '結帳 · 已選 ' + total + ' 項' : '結帳');
+    document.querySelectorAll('.item').forEach(function(el){
+      var it = byId[el.dataset.id], no = it.p > rem;
+      el.classList.toggle('no', no);
+      el.querySelector('[data-a="inc"]').disabled = no;
+      el.querySelector('[data-a="max"]').disabled = no;
+    });
+  }
+
+  function setQty(id, q){
+    var it = byId[id];
+    q = Math.floor(Number(q));
+    if (!isFinite(q) && q !== Infinity) q = 0;
+    var others = spent() - (qty[id] || 0) * it.p;
+    var max = Math.floor((BUDGET - others) / it.p);
+    q = Math.max(0, Math.min(max, q));
+    if (q) qty[id] = q; else delete qty[id];
+    updateRow(id);
+    updateHeader();
+  }
+
+  $('#tabs').addEventListener('click', function(e){
+    var b = e.target.closest('.tab'); if (!b) return;
+    cur = b.dataset.cat;
+    document.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t === b ? 'true' : 'false'); });
+    renderList();
+    window.scrollTo(0, 0);
+  });
+
+  $('#list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-a]'); if (!b || b.disabled) return;
+    var id = b.closest('.item').dataset.id, q = qty[id] || 0, a = b.dataset.a;
+    if (a === 'inc') setQty(id, q + step);
+    else if (a === 'dec') setQty(id, q - step);
+    else if (a === 'max') setQty(id, Infinity);
+  });
+  $('#list').addEventListener('change', function(e){
+    if (!e.target.classList.contains('q')) return;
+    var id = e.target.closest('.item').dataset.id;
+    var v = parseInt(String(e.target.value).replace(/[^\d]/g, ''), 10) || 0;
+    setQty(id, v);
+    updateRow(id);
+  });
+  $('#list').addEventListener('focusin', function(e){
+    if (e.target.classList.contains('q')) e.target.select();
+  });
+  $('#list').addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && e.target.classList.contains('q')) e.target.blur();
+  });
+  $('#step').addEventListener('change', function(e){ step = Number(e.target.value); });
+
+  $('#reset').addEventListener('click', function(){
+    for (var k in qty) delete qty[k];
+    renderList();
+  });
+
+  function gauss(){
+    var u = 0, v = 0;
+    while (!u) u = Math.random();
+    while (!v) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function binom(n, p){
+    if (n > 2000) return Math.max(0, Math.min(n, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * gauss())));
+    var c = 0;
+    for (var i = 0; i < n; i++) if (Math.random() < p) c++;
+    return c;
+  }
+  function signed(n){ return (n >= 0 ? '+' : '−') + twd(Math.abs(n)); }
+  function settle(withTesla){
+    var dip = mode === 'day' && day === 2;
+    var zm = dip ? -(0.8 + Math.random() * 0.7) : 2 + Math.random() * 1.5, invL = [], rentL = [], compL = [], gain = 0, pos = 0, rent = 0, units = 0, occTotal = 0, comp = 0, compN = 0;
+    for (var k in qty){
+      var it = byId[k], q = qty[k];
+      if (it.kind === 'inv'){
+        var x = it.x, z = x.us ? zm + 0.3 * gauss() : x.rho * zm + Math.sqrt(1 - x.rho * x.rho) * gauss();
+        var r = x.mu + x.sigma * z;
+        if (dip) r = Math.max(Math.min(r, -0.004 - Math.random() * 0.006), -0.03);
+        var p = q * it.p, g = Math.round(p * r);
+        invL.push({it:it, p:p, r:r, g:g}); gain += g; pos += p;
+      } else if (it.kind === 'rent'){
+        var n = binom(q, it.x.occ), rv = Math.round(n * it.x.rent / 30);
+        rentL.push({it:it, q:q, n:n, v:rv}); rent += rv; units += q; occTotal += n;
+      } else if (it.kind === 'co'){
+        var cv = Math.round(q * it.x.rev / 365 * FX * (0.95 + Math.random() * 0.1));
+        compL.push({it:it, q:q, v:cv}); comp += cv; compN += q;
+      }
+    }
+    var tesla = withTesla ? Math.round(TESLA_DAY * (0.95 + Math.random() * 0.1)) : 0;
+    var sixL = [], six = 0;
+    if (withTesla && mode === 'day'){
+      [['SpaceX（含 Starlink）', 15.5e9, 0.49], ['X', 2.7e9, 0.49], ['xAI', 0.5e9, 0.49], ['Neuralink', 10e6, 0.5], ['The Boring Company', 30e6, 0.9]].forEach(function(c){
+        var v = Math.round(c[1] / 365 * FX * c[2] * (0.95 + Math.random() * 0.1));
+        sixL.push({n:c[0], v:v, rev:Math.round(c[1] / 365 * FX), st:c[2]}); six += v;
+      });
+    }
+    var has = invL.length > 0 || rentL.length > 0 || compL.length > 0 || withTesla, net = gain + rent + comp + tesla + six, html = '', detail = '';
+    if (has){
+      html = '<div class="day"><span class="lab">' + (withTesla ? '今日收入' : '過一天 · 美股大漲日') + '</span>';
+      if (invL.length || withTesla) html += '<div class="ln"><span>投資損益<small>' + (invL.length ? '持倉 ' + twd(pos) + (dip ? ' · 美股小跌日 · 紅漲綠跌' : ' · 美股大漲日 · 紅漲綠跌') : '尚未持有投資') + '</small></span><b class="' + (gain >= 0 ? 'up' : 'dn') + '">' + signed(gain) + '</b></div>';
+      if (rentL.length || withTesla) html += '<div class="ln"><span>租金營收<small>' + (rentL.length ? '今日出租 ' + num(occTotal) + ' / ' + num(units) + ' 間' : '尚未出租房子') + '</small></span><b class="up">' + signed(rent) + '</b></div>';
+      if (compL.length || withTesla) html += '<div class="ln"><span>買下的公司營收<small>' + (compL.length ? '旗下 ' + num(compN) + ' 家公司 · 當日營收' : '尚未買下公司') + '</small></span><b class="up">' + signed(comp) + '</b></div>';
+      if (withTesla) html += sixL.length ? '<div class="ln"><span>公司營收（六間公司）<small>今日六間公司合計 · 依持股比例計算</small></span><b class="up">' + signed(tesla + six) + '</b></div>' : '<div class="ln"><span>特斯拉營收<small>全公司日營收約 NT$80 億 · 持股約 20%</small></span><b class="up">' + signed(tesla) + '</b></div>';
+      html += '<div class="ln tot"><span>' + (withTesla ? '今日總收入' : '今日淨收入') + '</span><b class="' + (net >= 0 ? 'up' : 'dn') + '">' + signed(net) + '</b></div></div>';
+      invL.sort(function(a, b){ return Math.abs(b.g) - Math.abs(a.g); });
+      rentL.sort(function(a, b){ return b.v - a.v; });
+      compL.sort(function(a, b){ return b.v - a.v; });
+      if (invL.length || rentL.length || compL.length) detail = '<details><summary>今日收入明細</summary>' +
+        compL.map(function(l){
+          return '<div class="ln"><span>' + l.it.name + '<small>持有 ' + num(l.q) + ' 家 · 當日營收</small></span><b class="up">' + signed(l.v) + '</b></div>';
+        }).join('') +
+        invL.map(function(l){
+          return '<div class="ln"><span>' + l.it.name + '<small>持倉 ' + twd(l.p) + ' · 今日 ' + (l.r >= 0 ? '+' : '−') + Math.abs(l.r * 100).toFixed(2) + '%</small></span><b class="' + (l.g >= 0 ? 'up' : 'dn') + '">' + signed(l.g) + '</b></div>';
+        }).join('') +
+        rentL.map(function(l){
+          return '<div class="ln"><span>' + l.it.name + '<small>出租 ' + num(l.n) + ' / ' + num(l.q) + ' 間</small></span><b class="up">' + signed(l.v) + '</b></div>';
+        }).join('') +
+        '</details>';
+    }
+    return {has:has, net:net, html:html, detail:detail};
+  }
+
+  function ferHTML(fn){
+    return fn > 0 ? '還能買<b>' + num(fn) + '</b>台法拉利' : '連一台法拉利都買不起了';
+  }
+  function spendHTML(amt){
+    var f = amt / FERRARI, big = f > 500;
+    return '<p class="spendv ' + (big ? 'bad' : 'ok') + '">' + (big ? '你今天花的錢太多了' : '真是一個勤儉的人') +
+      '<small>今天花掉約 ' + (f < 1 ? f.toFixed(2) : num(Math.floor(f))) + ' 台法拉利的錢，超過 500 台就算花太多</small></p>';
+  }
+
+  function openSheet(){
+    var s = spent(), rem = BUDGET - s;
+    var per = {}, lines = [];
+    DATA.forEach(function(c){ per[c.id] = {n:0, u:0, t:0}; });
+    for (var k in qty){
+      var it = byId[k];
+      per[it.cat].n++; per[it.cat].u += qty[k]; per[it.cat].t += qty[k] * it.p;
+      lines.push({it:it, q:qty[k], t:qty[k] * it.p});
+    }
+    lines.sort(function(a, b){ return b.t - a.t; });
+    var dayR = settle(false);
+    var catHTML = DATA.filter(function(c){ return per[c.id].n > 0; }).map(function(c){
+      var p = per[c.id];
+      return '<div class="ln"><span>' + c.name + '<small>' + p.n + ' 項 · ' + num(p.u) + ' 件</small></span><b>' + twd(p.t) + '</b></div>';
+    }).join('');
+    var pct = s / BUDGET * 100;
+    var pctStr = pct.toLocaleString('en-US', {maximumFractionDigits: pct > 99 ? 4 : 1});
+    var verdict = s === 0 ? '你還沒花半毛錢。' : (rem < MINP ? '全部花光，剩下的錢已買不起任何商品。' : '已花掉 ' + pctStr + '% 的資金。');
+    var bal = rem + dayR.net;
+    var fn = Math.max(0, Math.floor(bal / FERRARI));
+    var date = new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'long', day:'numeric'});
+    var detail = lines.length ? '<details><summary>完整購買清單（' + lines.length + ' 項）</summary>' + lines.map(function(l){
+      return '<div class="ln"><span>' + l.it.name + '<small>' + twd(l.it.p) + ' × ' + num(l.q) + '</small></span><b>' + twd(l.t) + '</b></div>';
+    }).join('') + '</details>' : '';
+    $('#sheetBody').innerHTML =
+      '<div class="rc">' +
+        '<p class="eyebrow">結帳明細 · ' + date + '</p>' +
+        '<h2>收據</h2>' +
+        '<p class="verdict">' + verdict + '</p>' +
+        (catHTML || '<div class="ln"><span>購物車是空的</span><b>NT$0</b></div>') +
+        '<div class="ln tot"><span>總花費</span><b>' + twd(s) + '</b></div>' +
+        spendHTML(s) +
+        dayR.html +
+        '<div class="res">' +
+          '<span class="lab">隔天（' + new Date(Date.now() + 864e5).toLocaleDateString('zh-TW', {month:'long', day:'numeric'}) + '）的馬斯克還有</span>' +
+          '<p class="remain">' + twd(bal) + '</p>' +
+          '<p class="zh" style="text-align:left;margin-top:2px">' + (bal >= 10000 ? zh(bal) + ' 元' : '') + (dayR.has ? '　（結帳前現金 ' + twd(rem) + '）' : '') + '</p>' +
+          '<p class="fer">' + ferHTML(fn) + '</p>' +
+          '<p class="note">法拉利以 Purosangue 約 US$400,000（' + twd(FERRARI) + '）換算</p>' +
+        '</div>' +
+        detail +
+        dayR.detail +
+        '<div class="acts"><button class="go" id="keep" type="button">繼續購物</button><button class="ghost" id="again" type="button">重新開始</button></div>' +
+      '</div>';
+    $('#sheet').hidden = false;
+    $('#sheet').scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+    $('#keep').focus();
+    $('#keep').addEventListener('click', closeSheet);
+    $('#again').addEventListener('click', function(){
+      for (var k in qty) delete qty[k];
+      closeSheet(); renderList();
+    });
+  }
+  function closeSheet(){
+    $('#sheet').hidden = true;
+    document.body.style.overflow = '';
+    $('#go').focus();
+  }
+  $('#go').addEventListener('click', function(){ if (mode === 'day') finishHour(); else openSheet(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && mode === 'free' && !$('#sheet').hidden) closeSheet();
+  });
+
+  /* ---------- 馬斯克的一天 ---------- */
+  var MEALS = {
+    b:{name:'早餐', opts:[["路邊早餐店", "蛋餅 · 奶茶", 65, 0], ["永和豆漿", "燒餅油條 · 豆漿", 90, 0], ["超商早餐", "咖啡 · 三明治", 120, 0], ["星巴克", "拿鐵 · 早餐三明治", 250, 1], ["美式早午餐店", "班尼迪克蛋 · 咖啡", 600, 1], ["鼎泰豐", "早午餐小籠包", 500, 1], ["五星飯店自助早餐", "台北 · 海鮮 · 現做蛋料理", 1800, 2], ["文華東方酒店早午餐", "台北 · 西式經典", 2500, 2], ["東京 麗思卡爾頓早餐", "東京 · 日西合併", 3000, 2], ["紐約 Tiffany Blue Box Café", "紐約 · 早餐", 3100, 2], ["巴黎麗茲飯店早餐", "巴黎 · 法式經典", 4500, 2], ["倫敦 The Ritz 早餐", "倫敦 · 英式經典", 3500, 2], ["魚子醬炒蛋配香檳", "私廚 · 每人", 40000, 2], ["空運和牛早餐", "私廚 · 每人", 80000, 2], ["包下飯店套房私廚早餐", "套房 · 不限人數", 300000, 2, 1]]},
+    l:{name:'午餐', opts:[["超商便當", "雞腿 / 排骨", 100, 0], ["牛肉麵", "台北 · 紅燒", 250, 0], ["夜市小吃", "蚵仔煎 · 小吃", 300, 0], ["鼎泰豐", "小籠包套餐", 600, 1], ["欣葉台菜", "台菜 · 合菜", 900, 1], ["日式鰻魚飯", "炭烤", 1500, 1], ["日式燒肉", "和牛午間套餐", 4500, 1], ["頤宮午宴", "台北 · 粵式 · 米其林星級", 6000, 2], ["頂級鐵板燒", "松葉蟹 · 和牛", 10000, 2], ["板前壽司午間 Omakase", "師傅現捏", 12000, 2], ["數寄屋橋次郎", "東京 · 壽司 · 米其林三星", 10500, 2], ["Alain Ducasse 雅典娜廣場", "巴黎 · 法式 · 米其林三星", 13000, 2], ["Per Se", "紐約 · 美式 · 米其林三星", 14000, 2], ["Eleven Madison Park", "紐約 · 蔬食 · 米其林三星", 11500, 2], ["Le Bernardin", "紐約 · 海鮮 · 米其林三星", 8700, 2], ["包下整間日式料亭午宴", "東京 · 不限人數", 300000, 2, 1]]},
+    d:{name:'晚餐', opts:[["夜市掃攤", "多攤位小吃", 1500, 0], ["高級火鍋", "和牛 · 海鮮盤", 2200, 1], ["欣葉台菜", "台菜 · 熱炒", 1200, 1], ["日式燒肉", "A5 和牛 · 嚴選部位", 4500, 1], ["JL Studio", "台中 · 創意料理 · 米其林星級", 8000, 2], ["頤宮", "台北 · 粵式 · 米其林星級", 8000, 2], ["RAW", "台北 · 台灣食材 · 米其林星級", 9000, 2], ["頂級鐵板燒", "松葉蟹 · 和牛", 10000, 2], ["板前壽司 Omakase", "師傅現捏", 12000, 2], ["法式餐廳搭餐酒", "全套 · 含酒款搭配", 18000, 2], ["Den", "東京 · 日式 · 米其林二星", 6300, 2], ["Narisawa", "東京 · 里山料理 · 米其林二星", 9500, 2], ["數寄屋橋次郎", "東京 · 壽司 · 米其林三星", 10500, 2], ["Odette", "新加坡 · 法式 · 米其林三星", 9000, 2], ["Eleven Madison Park", "紐約 · 蔬食 · 米其林三星", 11500, 2], ["Alinea", "芝加哥 · 分子料理 · 米其林三星", 12500, 2], ["Osteria Francescana", "義大利 · 摩德納 · 米其林三星", 11500, 2], ["The French Laundry", "加州 · 美式法餐 · 米其林三星", 16000, 2], ["Mirazur", "法國蔚藍海岸 · 米其林三星", 14500, 2], ["Pierre Gagnaire", "巴黎 · 法式 · 米其林三星", 13000, 2], ["Noma", "哥本哈根 · 新北歐 · 米其林三星", 18500, 2], ["私廚到府餐會", "主廚駐點 · 不限人數", 250000, 2, 1], ["包下整間米其林餐廳", "不限人數", 500000, 2, 1]]},
+    n:{name:'宵夜', opts:[["鹽酥雞", "綜合 · 一袋", 120, 0], ["滷味", "夜市 · 一份", 150, 0], ["拉麵", "日式 · 一碗", 350, 0], ["24 小時火鍋", "麻辣 · 單人", 600, 1], ["燒烤宵夜", "串燒 · 啤酒", 800, 1], ["日式居酒屋", "小菜 · 清酒", 1500, 1], ["威士忌酒吧", "山崎 18 年 · 輕食", 2500, 1], ["酒吧 + 小吃", "調酒 · 下酒菜", 3000, 1], ["飯店酒廊宵夜", "五星飯店 · 輕食與酒", 6000, 2], ["魚子醬吐司配香檳", "私人酒廊", 12000, 2], ["私廚到府宵夜", "主廚到府 · 不限人數", 100000, 2, 1]]}
+  };
+  var PICKS = {
+    c:{name:'上班', q:'您要怎麼去上班？', tiers:['平價', '舒適', '頂級'], skip:'今天不出門', label:'上班交通', opts:[["步行", "走路 1 公里", 0, 0, 12], ["YouBike", "微笑單車，含取還車", 30, 0, 6], ["自行車", "自己的公路車", 0, 0, 5], ["公車", "松高路站牌，含等車", 30, 0, 12], ["捷運", "市政府站，含走到站與轉乘", 30, 0, 15], ["機車", "Gogoro 電動機車", 20, 0, 5], ["重機", "Ducati 重型機車", 30, 1, 5], ["計程車", "信義區短程，起跳價", 100, 1, 5], ["Uber Black", "叫車專車", 450, 1, 5], ["自己開 Toyota Camry", "油錢與停車費", 500, 1, 5], ["特斯拉 Cybertruck 自駕", "電費與停車費", 300, 1, 5], ["賓士 S 級專車接送", "專屬司機", 15000, 2, 5], ["勞斯萊斯 Phantom 司機接送", "專屬司機", 80000, 2, 5], ["防彈座車加保鑣車隊", "3 部車", 150000, 2, 5], ["直升機通勤", "住家頂樓到公司頂樓", 250000, 2, 3]]},
+    j:{name:'決定活動', q:'11 點了，要做什麼活動？', tiers:['在台灣', '搭私人飛機出國', '太空與極限'], skip:'今天不安排活動', label:'活動', opts:[["在家睡回籠覺", "今天不出門", 0, 0, "睡到中午"], ["躺著一整天刷 Threads", "第 2 天起解鎖 · 今天不再購物，直接到睡前結算", 0, 0, "約 15 小時", "threads"], ["包下威秀電影院看新片", "一廳包場 · 概估", 30000, 0, "約 2 小時"], ["高爾夫球一場", "名門球場 · 含桿弟", 8000, 0, "約 5 小時"], ["騎馬一日", "近郊馬場", 15000, 0, "約 4 小時"], ["熱氣球包場", "台東 · 3 顆熱氣球 · 概估", 100000, 0, "約 3 小時"], ["直升機環繞台北 101", "繞一圈後回公司", 100000, 0, "飛行約 1 小時"], ["私人遊艇出海釣魚", "基隆出港 · 概估", 200000, 0, "約 6 小時"], ["輕型噴射機繞台灣一圈", "概估", 280000, 0, "飛行約 1.5 小時"], ["包下台北小巨蛋辦演唱會", "含舞台音響 · 概估", 3000000, 0, "約 8 小時"], ["包下波音 BBJ 環島飛行", "VIP 客機 · 概估", 25000000, 0, "飛行約 2 小時"], ["私人飛機到沖繩往返", "Cessna Citation 輕型機 · 概估", 850000, 1, "行程約 1.5 小時"], ["私人飛機到首爾往返", "中型私人機 · 概估", 1300000, 1, "行程約 2.5 小時"], ["私人飛機到東京往返", "Gulfstream G450 · 概估", 1700000, 1, "行程約 3 小時"], ["私人飛機到新加坡往返", "Gulfstream G450 · 概估", 2300000, 1, "行程約 4.5 小時"], ["私人飛機到馬爾地夫往返", "Gulfstream G650 · 概估", 4500000, 1, "行程約 7 小時"], ["私人飛機到杜拜往返", "Gulfstream G650 · 概估", 7500000, 1, "行程約 9 小時"], ["私人飛機到洛杉磯往返", "Gulfstream G650 · 概估", 9000000, 1, "行程約 11.5 小時"], ["私人飛機到瑞士滑雪往返", "聖莫里茨 · 概估", 10000000, 1, "行程約 12 小時"], ["私人飛機到巴黎往返", "Gulfstream G700 · 概估", 11000000, 1, "行程約 12 小時"], ["私人飛機到紐約往返", "Gulfstream G700 · 概估", 12500000, 1, "行程約 15 小時"], ["私人飛機環遊世界一圈", "多國停靠 · 概估", 60000000, 1, "約 7 天"], ["高空跳傘", "雙人跳 · 約 4,000 公尺 · 概估", 5000, 2, "約 3 小時"], ["賽車場開法拉利一日", "賽道日 · 概估", 150000, 2, "約 6 小時"], ["Triton 私人潛艇出海探險", "租用一日 · 概估", 1000000, 2, "約 6 小時"], ["南極破冰船探險", "含直升機接駁 · 概估", 3000000, 2, "約 12 天"], ["搭火箭上太空：次軌道飛行", "Blue Origin 等級 · 概估價", 15500000, 2, "飛行約 11 分鐘"], ["包機去德州星際基地看星艦發射", "SpaceX · 概估", 20000000, 2, "行程約 15 小時"], ["包下東京迪士尼樂園一整天", "包場 · 概估", 50000000, 2, "約 12 小時"], ["搭火箭上太空：國際太空站 10 天", "Axiom 等級 · 概估價", 1700000000, 2, "約 10 天"], ["搭火箭繞地球軌道 3 天", "私人包下整艘太空船 · 概估價", 6000000000, 2, "約 3 天"]]}
+  };
+  var TIERS = ['平價小吃', '好餐廳', '高級餐廳'];
+  var selOpt = null;
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function seqNext(h){
+    var seq = lie ? [8, 12, 18, 26] : (day === 1 && !flyShown ? [8, 9, 10, 11, 12, 15, 17, 18, 26] : [8, 9, 10, 11, 12, 15, 18, 26]);
+    for (var i = 0; i < seq.length; i++) if (seq[i] > h) return seq[i];
+    return 26;
+  }
+  function labelFor(h){
+    if (h >= 26) return '睡覺結算';
+    if (h === 9) return '上班交通 09:00';
+    if (h === 11) return '決定活動 11:00';
+    if (h === 12) return '午餐 12:00';
+    if (h === 17) return '新品發表 17:00';
+    if (h === 18) return '晚餐 18:00';
+    return pad(h % 24) + ':00';
+  }
+  function nextLabel(){ return labelFor(seqNext(hour)); }
+  function phaseFor(h){
+    return h < 9 ? '早上' : (h < 12 ? '上午' : (h < 14 ? '中午' : (h < 18 ? '下午' : (h < 24 ? '傍晚' : '深夜'))));
+  }
+  function updateClock(){
+    $('#clockDay').textContent = '第 ' + day + ' / 3 天' + (lie ? ' · 躺平中' : '') + (tag ? ' · ' + tag : '');
+    $('#clk').textContent = pad(hour % 24) + ':00';
+    $('#phase').textContent = phaseFor(hour);
+    var ACT = {8:'起床，決定早餐', 9:'選擇交通工具去上班', 10:'開始購物', 11:'決定活動', 12:'午餐', 15:'開始購物', 18:'晚餐', 26:'睡前，財產餘額結算'};
+    $('#clkact').textContent = ACT[hour] || '開始購物';
+  }
+  function setMode(m){
+    mode = m;
+    document.body.setAttribute('data-mode', m);
+    $('#intro').hidden = m !== 'intro';
+    $('#clockrow').hidden = m !== 'day';
+  }
+  function resetAll(){
+    for (var k in qty) delete qty[k];
+    dipShown = false; flyShown = false; extra = 0; day = 1; BUDGET = BASE; log = []; snap = {}; hist = [];
+  }
+  function showSheet(html){
+    $('#sheetBody').innerHTML = '<div class="rc dlg">' + html + '</div>';
+    $('#sheet').hidden = false;
+    $('#sheet').scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  }
+  function hideSheet(){
+    $('#sheet').hidden = true;
+    document.body.style.overflow = '';
+  }
+  function startDayFlow(){
+    hour = 8; lie = false; tag = ''; log = []; snap = JSON.parse(JSON.stringify(qty));
+    updateClock(); updateHeader();
+    wakeSheet();
+  }
+  var dipShown = false, flyShown = false;
+  function flyNotice(){
+    showSheet(
+      '<p class="eyebrow">第 1 天 · ' + pad(hour % 24) + ':00 · 新品發表</p>' +
+      '<h2>你發表了新產品：飛天汽車</h2>' +
+      '<img class="flycar" alt="飛天汽車" src="data:image/jpeg;base64,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">' +
+      '<p class="q1">這款產品一毛錢都沒賺到，但你得到的快樂，比你全部的財產還要多。</p>' +
+      '<div class="choice"><button class="go" type="button" data-act="fly">太開心了，繼續</button></div>');
+  }
+  function invHeld(){
+    var tot = 0, n = 0;
+    for (var k in qty){ var it = byId[k]; if (it && it.kind === 'inv' && qty[k] > 0){ tot += qty[k] * it.p; n++; } }
+    return {tot:tot, n:n};
+  }
+  function dipNotice(){
+    var h = invHeld();
+    showSheet(
+      '<p class="eyebrow">第 2 天 · ' + pad(hour % 24) + ':00 · 財經快訊</p>' +
+      '<h2>股市今天下跌了</h2>' +
+      '<svg class="dipart" viewBox="0 0 360 220" role="img" aria-label="股市下跌示意圖" xmlns="http://www.w3.org/2000/svg"><rect width="360" height="220" rx="10" fill="#0e1a24"/><g stroke="#2a3e4f" stroke-width="1"><path d="M0 55h360M0 110h360M0 165h360"/><path d="M60 0v220M120 0v220M180 0v220M240 0v220M300 0v220"/></g><g font-family="IBM Plex Mono,monospace" font-size="10"><g fill="#ff5a5a"><text x="12" y="20">2330  -2.1%</text><text x="12" y="36">0050  -1.4%</text></g><g fill="#38c98b"><text x="250" y="20">VIX  +18%</text></g><g fill="#ff5a5a"><text x="250" y="36">NDX  -1.8%</text></g></g><path d="M10 150c30-6 40-30 70-34s40 10 60-8 36-42 62-50 30 22 50 36 36 40 60 60 38 22 54 36" fill="none" stroke="#3a8fb7" stroke-width="2" opacity=".6"/><path d="M10 95l60-12 40-14 40 18 40-34 40 30 40-10 40 44 40 24" transform="translate(0 6)" fill="none" stroke="#ff4040" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M344 154l-22-2 8-18z" fill="#ff4040"/><g fill="#05090d"><path d="M130 220v-58c0-18 14-30 30-32h40c16 2 30 14 30 32v58z"/><circle cx="180" cy="116" r="22"/><path d="M150 150c-14-6-28-20-30-44l8-2c4 18 14 28 28 34z"/><path d="M210 150c14-6 28-20 30-44l-8-2c-4 18-14 28-28 34z"/><circle cx="126" cy="100" r="9"/><circle cx="234" cy="100" r="9"/></g><path d="M158 134c8 10 36 10 44 0" fill="none" stroke="#1d2b36" stroke-width="3"/></svg>' +
+      '<p class="q1">美股與台股同步小跌，基金也跟著走弱。' + (h.n ? '你目前持有的投資約 ' + twd(h.tot) + '，要繼續投資，還是先不投資？' : '你目前沒有持有投資，今天可以先觀望。') + '</p>' +
+      '<p class="note">跌幅不大，每檔投資一天最多跌約 3%。選擇「不投資」會把目前持有的投資全部賣出，錢回到餘額，今天不受下跌影響。</p>' +
+      '<div class="choice">' + (h.n ?
+        '<button class="go" type="button" data-act="dip" data-v="hold">繼續投資</button><button class="ghost" type="button" data-act="dip" data-v="sell">不投資，全部賣出</button>' :
+        '<button class="go" type="button" data-act="dip" data-v="hold">知道了</button>') + '</div>');
+  }
+  function wakeSheet(){
+    showSheet(
+      '<p class="eyebrow">第 ' + day + ' 天 · 08:00</p>' +
+      '<h2>早安，馬斯克</h2>' +
+      '<p class="q1">今天要怎麼過？</p>' +
+      '<div class="choice">' +
+        '<button class="go" type="button" data-act="wake" data-v="0">正常過一天，上班、購物、決定活動</button>' +
+        '<button class="ghost" type="button" data-act="wake" data-v="1">躺一整天，只吃早餐、午餐、晚餐</button>' +
+      '</div>');
+  }
+  function mealDialog(t){
+    mealType = t; selOpt = null;
+    var m = MEALS[t];
+    updateClock();
+    var body = '';
+    for (var tier = 0; tier < 3; tier++){
+      var rows = '';
+      m.opts.forEach(function(o, i){
+        if (o[3] !== tier) return;
+        rows += '<button class="rst" type="button" data-act="chip" data-i="' + i + '"><span class="rn">' + o[0] + '<small>' + o[1] + '</small></span><span class="rp">' + twd(o[2]) + (o[4] ? '' : '<small>每人</small>') + '</span></button>';
+      });
+      if (rows) body += '<p class="tier">' + TIERS[tier] + '</p><div class="rl">' + rows + '</div>';
+    }
+    showSheet(
+      '<p class="eyebrow">第 ' + day + ' 天 · ' + pad(hour % 24) + ':00' + (lie ? ' · 躺平中' : '') + '</p>' +
+      '<h2>' + m.name + '</h2>' +
+      '<p class="q1">他現在想去哪裡吃' + m.name + '？</p>' +
+      body +
+      '<div class="fld"><label for="mealName">想吃什麼</label><input id="mealName" type="text" autocomplete="off" placeholder="點上面的餐廳，或自己寫"></div>' +
+      '<div class="fld"><label for="mealPeople">幾個人</label><input id="mealPeople" type="text" inputmode="numeric" autocomplete="off" value="1"></div>' +
+      '<div class="fld"><label for="mealPrice">這一餐花多少（新台幣）</label><input id="mealPrice" type="text" inputmode="numeric" autocomplete="off" value="300"></div>' +
+      '<div class="choice">' +
+        '<button class="go" type="button" data-act="eat">吃這個</button>' +
+        '<button class="ghost" type="button" data-act="skip">不吃</button>' +
+      '</div>');
+    $('#mealName').focus();
+  }
+  function peopleN(){ return Math.max(1, Math.min(1000, parseInt(String($('#mealPeople').value).replace(/[^\d]/g, ''), 10) || 1)); }
+  function syncPrice(){
+    if (selOpt) $('#mealPrice').value = String(selOpt[4] ? selOpt[2] : selOpt[2] * peopleN());
+  }
+  function durHours(txt){
+    if (/睡到中午/.test(txt)) return 1;
+    var m = /(\d+(?:\.\d+)?)\s*(分鐘|小時|天)/.exec(txt);
+    if (!m) return 1;
+    var v = parseFloat(m[1]);
+    return m[2] === '分鐘' ? v / 60 : (m[2] === '天' ? v * 24 : v);
+  }
+  function optTime(t, o){
+    if (t !== 'c') return o[4];
+    var m = 9 * 60 + o[4];
+    return '約 ' + o[4] + ' 分鐘 · ' + pad(Math.floor(m / 60)) + ':' + pad(m % 60) + ' 到公司';
+  }
+  function pickDialog(t){
+    mealType = t;
+    var m = PICKS[t], body = '';
+    updateClock();
+    for (var tier = 0; tier < m.tiers.length; tier++){
+      var rows = '';
+      m.opts.forEach(function(o, i){
+        if (o[3] !== tier) return;
+        if (o[5] === 'threads' && day < 2) return;
+        rows += '<button class="rst" type="button" data-act="pick" data-i="' + i + '"><span class="rn">' + o[0] + '<small>' + o[1] + ' · ' + optTime(t, o) + '</small></span><span class="rp">' + (o[5] === 'ad' ? '<b class="up">+' + twd(o[6]) + '</b>' : (o[2] ? twd(o[2]) : '免費')) + '</span></button>';
+      });
+      if (rows) body += '<p class="tier">' + m.tiers[tier] + '</p><div class="rl">' + rows + '</div>';
+    }
+    showSheet(
+      '<p class="eyebrow">第 ' + day + ' 天 · ' + pad(hour % 24) + ':00</p>' +
+      '<h2>' + m.name + '</h2>' +
+      '<p class="q1">' + m.q + '</p>' +
+      (t === 'c' ? '<p class="note">你住在陶朱隱園，公司（特斯拉）在松德路 200 巷，約 1 公里（概估）。走路約 12 分鐘，其他交通工具的時間依速度推算，並算出幾點到公司。</p>' : '<p class="note">費用與時間為概估，飛機費用含機組與燃油、不含機場費，太空旅行與極限活動的價格僅供遊戲參考。選了活動，時間就會跳到活動結束之後，沒趕上的午餐、晚餐和購物就錯過了。</p>') +
+      body +
+      '<div class="choice"><button class="ghost" type="button" data-act="pickskip">' + m.skip + '</button></div>');
+  }
+  function logPurchases(){
+    var seen = {}, k;
+    for (k in qty) seen[k] = 1;
+    for (k in snap) seen[k] = 1;
+    for (k in seen){
+      var d = (qty[k] || 0) - (snap[k] || 0);
+      if (!d) continue;
+      var it = byId[k];
+      log.push({h:hour, text:(d > 0 ? it.name + ' × ' : '退回 ' + it.name + ' × ') + num(Math.abs(d)), amt:d * it.p});
+    }
+    snap = JSON.parse(JSON.stringify(qty));
+  }
+  function enterHour(h){
+    hour = h;
+    if (h >= 26) return endDay();
+    if (day === 1 && !flyShown && h >= 17){ flyShown = true; return flyNotice(); }
+    if (day === 2 && !dipShown && (h === 11 || (lie && h === 12))){ dipShown = true; return dipNotice(); }
+    if (h === 9) return pickDialog('c');
+    if (h === 11) return pickDialog('j');
+    if (h === 12) return mealDialog('l');
+    if (h === 18) return mealDialog('d');
+    hideSheet();
+    updateClock();
+    renderList();
+    window.scrollTo(0, 0);
+  }
+  function finishHour(){
+    logPurchases();
+    tag = '';
+    enterHour(seqNext(hour));
+  }
+  function notesOf(lg, streak){
+    var n = [];
+    if (lg.some(function(l){ return l.text.indexOf('請全公司喝珍珠奶茶') >= 0; })) n.push('您真是一個大方的老闆');
+    if (lg.some(function(l){ return l.trip; })) n.push('您真享受生活');
+    if (streak) n.push('就算一整天不做，還是賺了很多錢');
+    return n;
+  }
+  function notesHTML(n){
+    return n.length ? '<div class="day"><span class="lab">備注</span>' + n.map(function(t){ return '<div class="ln"><span>' + t + '</span></div>'; }).join('') + '</div>' : '';
+  }
+  function endDay(skip){
+    skip = skip || 0;
+    var startDay = day;
+    hour = 26;
+    updateClock();
+    var inc = settle(true);
+    var spentToday = log.reduce(function(a, l){ return a + l.amt; }, 0);
+    if (BUDGET + inc.net < spent()) inc.net = spent() - BUDGET;
+    BUDGET += inc.net;
+    var rem = BUDGET - spent();
+    var fn = Math.max(0, Math.floor(rem / FERRARI));
+    var thr = log.some(function(l){ return l.thr; });
+    hist.push({day:day, spent:spentToday, income:inc.net, balance:rem, fer:fn, thr:thr, lay:!!(lie || thr), ad:log.reduce(function(a, l){ return a + (l.ad || 0); }, 0), lines:log.slice()});
+    var h3 = hist.slice(-2), streak = h3.length === 2 && h3.every(function(h){ return h.thr; });
+    hist[hist.length - 1].notes = notesOf(log, streak);
+    var skipHTML = '';
+    if (skip > 0){
+      var sk = '';
+      for (var k = 1; k <= skip; k++){
+        day++;
+        var ik = settle(true);
+        if (BUDGET + ik.net < spent()) ik.net = spent() - BUDGET;
+        BUDGET += ik.net;
+        var rk = BUDGET - spent();
+        hist.push({day:day, spent:0, income:ik.net, balance:rk, fer:Math.max(0, Math.floor(rk / FERRARI))});
+        sk += '<div class="ln"><span>第 ' + day + ' 天（還在外面）<small>投資、房租、公司與特斯拉營收照樣進帳</small></span><b class="up">' + signed(ik.net) + '</b></div>';
+      }
+      rem = BUDGET - spent();
+      fn = Math.max(0, Math.floor(rem / FERRARI));
+      skipHTML = '<div class="day"><span class="lab">出遠門的日子</span>' + sk + '</div>';
+    }
+    var logHTML = log.length ? '<details><summary>今日花費明細（' + log.length + ' 筆）</summary>' + log.map(function(l){
+      return '<div class="ln"><span>' + pad(l.h % 24) + ':00 · ' + l.text + '</span><b>' + twd(l.amt) + '</b></div>';
+    }).join('') + '</details>' : '';
+    showSheet(
+      '<p class="eyebrow">第 ' + startDay + ' 天 · 半夜 02:00</p>' +
+      '<h2>' + (lie ? '躺了一整天，晚安' : '晚安，馬斯克') + '</h2>' +
+      '<p class="verdict">' + (spentToday ? '今天花了 ' + twd(spentToday) + '。' : '今天一毛錢都沒花。') + '</p>' +
+      '<div class="ln tot"><span>今日花費</span><b>' + twd(spentToday) + '</b></div>' +
+      inc.html +
+      skipHTML +
+      '<div class="res">' +
+        '<span class="lab">' + (skip > 0 ? '第 ' + day + ' 天睡前，馬斯克還有' : '凌晨 2 點睡前，馬斯克還有') + '</span>' +
+        '<p class="remain">' + twd(rem) + '</p>' +
+        '<p class="zh" style="text-align:left;margin-top:2px">' + zh(rem) + ' 元</p>' +
+        (day >= 3 ? '<p class="fer">' + ferHTML(fn) + '</p>' +
+        '<p class="note">法拉利以 Purosangue 約 US$400,000（' + twd(FERRARI) + '）換算</p>' : '') +
+      '</div>' +
+      logHTML + inc.detail + histHTML() +
+      '<div class="acts"><button class="go" type="button" data-act="' + (day >= 3 ? 'final' : 'next') + '">' + (day >= 3 ? '看三天總結' : '進入第 ' + (day + 1) + ' 天') + '</button><button class="ghost" type="button" data-act="home">回首頁</button></div>');
+  }
+  function histHTML(){
+    if (!hist.length) return '';
+    return '<details><summary>每天累積（第 ' + hist.length + ' / 3 天）</summary>' + hist.map(function(h){
+      return '<div class="ln"><span>第 ' + h.day + ' 天<small>花 ' + twd(h.spent) + ' · 收入 ' + twd(h.income) + '</small></span><b>' + twd(h.balance) + '</b></div>';
+    }).join('') + '</details>';
+  }
+  function sloganHTML(ts, last){
+    var out = [];
+    if (ts === 0 || hist.some(function(h){ return h.lay; })) out.push('就算躺著什麼都不做，我也能賺很多錢');
+    if (ts <= BASE / 2 && ts / FERRARI <= 2000) out.push('您真的太節儉了');
+    if (last.fer === 0) out.push('慾望越來越大了');
+    if (last.balance <= 10000) out.push('你是身無分文的馬斯克。');
+    if (ts / FERRARI > 2000) out.push('你花太多了');
+    return '<div class="slogans">' + out.map(function(t){ return '<p class="slogan">' + t + '</p>'; }).join('') + '</div>';
+  }
+  function finalSheet(){
+    var ts = 0, ti = 0, over = 0;
+    var ad = 0;
+    hist.forEach(function(h){ ts += h.spent; ti += h.income; ad += h.ad || 0; });
+    var last = hist[hist.length - 1], net = last.balance - BASE;
+    showSheet('<div class="fin">' +
+      '<p class="eyebrow">三天結算 · 2026</p>' +
+      '<h2>三天過完了</h2>' +
+      sloganHTML(ts, last) +
+      (function(){ var u = []; hist.forEach(function(h){ (h.notes || []).forEach(function(t){ if (u.indexOf(t) < 0) u.push(t); }); }); return u.length ? '<div class="slogans">' + u.map(function(t){ return '<p class="bignote">' + t + '</p>'; }).join('') + '</div>' : ''; })() +
+      '<p class="shock">三天花掉 <b>' + num(Math.floor(ts / FERRARI)) + '</b> 台法拉利的錢，' + (ti >= 0 ? (ts === 0 ? '光靠躺著就賺進 <b>' : '還賺進 <b>') + twd(ti) + '</b>' : '身家縮水了') + '！</p>' +
+      (ad > 0 ? '<div class="ln"><span>業配廣告收入<small>遊戲虛構，另外加進餘額</small></span><b class="up">' + signed(ad) + '</b></div>' : '') +
+      '<div class="ln"><span>三天總花費<small>相當於 ' + num(Math.floor(ts / FERRARI)) + ' 台法拉利</small></span><b>' + twd(ts) + '</b></div>' +
+      '<div class="ln"><span>三天總收入<small>投資、房租、公司營收、特斯拉</small></span><b class="up">' + signed(ti) + '</b></div>' +
+      '<div class="ln tot"><span>資產變化<small>開局 ' + twd(BASE) + '</small></span><b class="' + (net >= 0 ? 'up' : 'dn') + '">' + signed(net) + '</b></div>' +
+      '<div class="res"><span class="lab">第三天睡前，馬斯克還有</span><p class="remain">' + twd(last.balance) + '</p>' +
+      '<p class="zh" style="text-align:left;margin-top:2px">' + zh(last.balance) + ' 元</p>' +
+      '<p class="fer">' + ferHTML(last.fer) + '</p></div>' +
+      '<details open><summary>三天明細</summary>' + hist.map(function(h){
+        var ls = (h.lines || []).map(function(l){ return '<div class="ln"><span>' + pad(l.h % 24) + ':00 · ' + l.text + '</span><b>' + twd(l.amt) + '</b></div>'; }).join('');
+        return '<div class="ln"><span>第 ' + h.day + ' 天' + '<small>花 ' + twd(h.spent) + ' · 收入 ' + twd(h.income) + (h.ad ? ' · 業配 ' + twd(h.ad) : '') + '</small></span><b>' + twd(h.balance) + '</b></div>' + ls +
+          (h.notes && h.notes.length ? '<div class="ln"><span><small>備注：' + h.notes.join('；') + '</small></span></div>' : '');
+      }).join('') + '</details>' +
+      '<div class="acts"><button class="go" type="button" data-act="again7">再玩一次</button><button class="ghost" type="button" data-act="future">預測 1 年後的我</button><button class="ghost" type="button" data-act="home">回首頁</button></div></div>');
+  }
+  function futureSheet(){
+    var ts = 0, ti = 0, n = hist.length, last = hist[n - 1];
+    hist.forEach(function(h){ ts += h.spent; ti += h.income; });
+    var ds = Math.round(ts / n), di = Math.round(ti / n), D = 365;
+    var proj = Math.round(last.balance + D * (di - ds));
+    var broke = proj <= 0, fn = Math.max(0, Math.floor(proj / FERRARI));
+    var yrs = (ds > di) ? last.balance / (ds - di) / 365 : Infinity;
+    var verdict = proj < last.balance
+      ? (broke ? '照這樣花下去，馬斯克會在約 ' + yrs.toFixed(1) + ' 年後花光所有錢。' : '你花得比賺得還快，一年後身家會比現在少。')
+      : '你賺得比花得多，一年後身家會比現在更多。';
+    showSheet('<div class="fin">' +
+      '<p class="eyebrow">一年預測 · 依你這三天的消費習慣</p>' +
+      '<h2>1 年後的你</h2>' +
+      '<p class="shock">' + (broke ? '你是身無分文的馬斯克。' : '還剩 <b>' + twd(proj) + '</b>') + '</p>' +
+      '<p class="verdict">' + verdict + '</p>' +
+      '<div class="ln"><span>平均每天花費<small>三天平均</small></span><b>' + twd(ds) + '</b></div>' +
+      '<div class="ln"><span>平均每天收入<small>投資、房租、公司營收、特斯拉</small></span><b class="up">' + signed(di) + '</b></div>' +
+      '<div class="ln"><span>現在的財產<small>第三天睡前</small></span><b>' + twd(last.balance) + '</b></div>' +
+      '<div class="res"><span class="lab">一年後（365 天），馬斯克還有</span><p class="remain">' + twd(Math.max(0, proj)) + '</p>' +
+      '<p class="zh" style="text-align:left;margin-top:2px">' + zh(Math.max(0, proj)) + ' 元</p>' +
+      '<p class="fer">' + ferHTML(fn) + '</p></div>' +
+      '<p class="note">這是把你這三天的平均花費和平均收入乘上 365 天的簡單推算，沒有計入利息、通膨、股市漲跌與稅，只是好玩的估算。</p>' +
+      '<div class="acts"><button class="go" type="button" data-act="again7">再玩一次</button><button class="ghost" type="button" data-act="final">回到三天總結</button><button class="ghost" type="button" data-act="home">回首頁</button></div></div>');
+  }
+  function goHome(){ hideSheet(); setMode('intro'); window.scrollTo(0, 0); }
+
+  $('#sheetBody').addEventListener('click', function(e){
+    var b = e.target.closest('[data-act]'); if (!b || mode !== 'day' && b.dataset.act !== 'home') return;
+    var a = b.dataset.act;
+    if (a === 'fly'){
+      enterHour(hour);
+    } else if (a === 'dip'){
+      if (b.dataset.v === 'sell'){
+        for (var dk in qty){ var di = byId[dk]; if (di && di.kind === 'inv') delete qty[dk]; }
+        snap = JSON.parse(JSON.stringify(qty)); updateHeader();
+      }
+      enterHour(hour);
+    } else if (a === 'wake'){
+      lie = b.dataset.v === '1';
+      mealDialog('b');
+    } else if (a === 'chip'){
+      selOpt = MEALS[mealType].opts[Number(b.dataset.i)];
+      document.querySelectorAll('.rst').forEach(function(r){ r.classList.toggle('sel', r === b); });
+      $('#mealName').value = selOpt[0];
+      syncPrice();
+    } else if (a === 'eat' || a === 'skip'){
+      var name = a === 'skip' ? '' : String($('#mealName').value).trim();
+      var price = a === 'skip' ? 0 : (parseInt(String($('#mealPrice').value).replace(/[^\d]/g, ''), 10) || 0);
+      price = Math.min(price, Math.max(0, BUDGET - spent()));
+      extra += price;
+      var ppl = a === 'skip' ? 1 : peopleN();
+      log.push({h:hour, text:MEALS[mealType].name + '：' + (a === 'skip' ? '沒吃' : (name || '隨便吃點') + (ppl > 1 ? '（' + ppl + ' 人）' : '')), amt:price});
+      enterHour(seqNext(hour));
+    } else if (a === 'pick' || a === 'pickskip'){
+      var pk = PICKS[mealType], po = a === 'pick' ? pk.opts[Number(b.dataset.i)] : null;
+      var pc = po ? Math.min(po[2], Math.max(0, BUDGET - spent())) : 0;
+      extra += pc;
+      var adv = po && po[5] === 'ad' ? po[6] : 0;
+      if (adv) BUDGET += adv;
+      log.push({h:hour, text:pk.label + '：' + (po ? po[0] + '（' + optTime(mealType, po).replace(' · ', '，') + '）' + (adv ? '，業配收入 +' + twd(adv) : '') : pk.skip), amt:pc, ad:adv, thr:!!(po && po[5] === 'threads'), trip:!!(mealType === 'j' && po && (po[3] === 1 || /太空|火箭|星艦|軌道/.test(po[0])))});
+      if (mealType === 'j' && po){
+        var T = Math.ceil(hour + durHours(po[4]) - 0.0001);
+        if (T >= 26) endDay(Math.max(0, Math.min(Math.floor((T - 26) / 24), 3 - day)));
+        else { tag = '活動結束'; enterHour(T); }
+      } else enterHour(seqNext(hour));
+    } else if (a === 'next'){
+      day++;
+      startDayFlow();
+    } else if (a === 'future'){
+      futureSheet();
+    } else if (a === 'final'){
+      finalSheet();
+    } else if (a === 'again7'){
+      resetAll(); startDayFlow();
+    } else if (a === 'home'){
+      goHome();
+    }
+  });
+
+  $('#sheetBody').addEventListener('input', function(e){ if (e.target.id === 'mealPeople') syncPrice(); });
+
+  $('#startDay').addEventListener('click', function(){
+    resetAll(); setMode('day'); startDayFlow();
+  });
+  $('#startFree').addEventListener('click', function(){
+    resetAll(); hideSheet(); setMode('free'); renderList(); window.scrollTo(0, 0);
+  });
+  $('#home').addEventListener('click', goHome);
+  $('#home2').addEventListener('click', goHome);
+
+  renderTabs();
+  renderList();
+  setMode('intro');
+})();
+</script>
+
+</body>
+</html>
